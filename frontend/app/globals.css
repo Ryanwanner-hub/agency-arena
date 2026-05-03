@@ -1,0 +1,438 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Per-theme CSS variable blocks are generated from `lib/themes.ts` and
+     injected into the document head by `app/layout.tsx`. This file holds
+     only the static rules that consume those variables.
+
+     Single source of truth lives in TypeScript so `useTheme()` and the
+     stylesheet stay in lock-step automatically. */
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background: var(--body-bg);
+    @apply text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background 240ms ease;
+  }
+
+  /* Card shadow / glow is theme-driven. Components stay theme-agnostic. */
+  .rounded-lg.border.bg-card,
+  .rounded-xl.border.bg-card {
+    box-shadow: var(--card-glow);
+    transition: box-shadow 240ms ease;
+  }
+
+  /* Top-strip hero cards keep their per-metric accent color, but the
+     opacity drops on dark themes so the lights don't wash the bg. */
+  [data-theme="neon"] .top-strip-accent,
+  [data-theme="casino"] .top-strip-accent {
+    opacity: 0.18;
+  }
+
+  /* Animation intensity gates expressed at the document root. Components
+     can stay declarative — these rules turn things off without each
+     component checking the active theme. */
+  [data-animation="minimal"] .avatar-on-fire,
+  [data-animation="minimal"] .avatar-hot-streak,
+  [data-animation="minimal"] .celebration-large-emoji {
+    animation: none;
+  }
+  [data-animation="minimal"] .avatar-on-fire {
+    box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.4);
+  }
+
+  /* ─── SportsCenter: scoreboard typography + chunky rank badges ─── */
+  [data-theme="sports"] .leaderboard-row td {
+    font-weight: 600;
+  }
+  [data-theme="sports"] .leaderboard-row .points-value {
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+  [data-theme="sports"] .leaderboard-row.top-3-row .points-value {
+    font-size: 1.875rem; /* text-3xl on top 3 */
+  }
+  [data-theme="sports"] .leaderboard-row .rank-tile {
+    font-weight: 900;
+    border-radius: 0.375rem; /* squarer "jersey" feel */
+  }
+  [data-theme="sports"] .leaderboard-row.top-3-row .rank-tile {
+    height: 2.5rem;
+    width: 2.5rem;
+    font-size: 1rem;
+  }
+  /* Subtle zebra striping reads like a scoreboard. */
+  [data-theme="sports"] .leaderboard-row:nth-child(even):not(.top-3-row) {
+    background: hsl(var(--muted) / 0.4);
+  }
+
+  /* ─── Casino Night: gold shimmer on the leader, embossed badges ─── */
+  @keyframes casino-rank-shimmer {
+    0%, 100% {
+      box-shadow:
+        0 0 0 2px hsl(45 90% 55% / 0.5),
+        0 0 12px hsl(45 90% 55% / 0.25);
+    }
+    50% {
+      box-shadow:
+        0 0 0 3px hsl(45 90% 55% / 0.95),
+        0 0 22px hsl(45 90% 55% / 0.55);
+    }
+  }
+  [data-theme="casino"][data-animation="high"] .leaderboard-row .rank-tile.rank-1 {
+    animation: casino-rank-shimmer 2.4s ease-in-out infinite;
+  }
+  [data-theme="casino"] .leaderboard-row.top-3-row {
+    background: linear-gradient(
+      90deg,
+      hsl(45 90% 55% / 0.06) 0%,
+      transparent 60%
+    );
+  }
+  /* Embossed badges — gold rim + inner highlight. */
+  [data-theme="casino"] .badge-tile {
+    box-shadow:
+      inset 0 1px 0 hsl(45 90% 80% / 0.5),
+      inset 0 -1px 0 hsl(45 50% 25% / 0.4),
+      0 0 0 1px hsl(45 90% 55% / 0.45);
+  }
+
+  /* ─── Neon Arena: glowing rows + magenta hover trail ─── */
+  [data-theme="neon"] .leaderboard-row {
+    transition: box-shadow 200ms ease, background 200ms ease;
+  }
+  [data-theme="neon"] .leaderboard-row:hover {
+    background: hsl(var(--primary) / 0.06);
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.35);
+  }
+  [data-theme="neon"] .leaderboard-row.top-3-row {
+    box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.6);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary) / 0.05) 0%,
+      transparent 40%
+    );
+  }
+
+  /* ─── Corporate Clean: keep badges desaturated, never animate the rank ─── */
+  [data-theme="corporate"] .badge-tile {
+    filter: saturate(0.75);
+  }
+}
+
+@keyframes celebration-popup-enter {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.celebration-popup-enter {
+  animation: celebration-popup-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-popup-enter {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Small tier — bottom-right toast pill. */
+@keyframes celebration-small-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) translateX(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+.celebration-small-enter {
+  animation: celebration-small-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Large tier — full-screen radial wash + center scale-in. */
+@keyframes celebration-large-backdrop {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.celebration-large-backdrop {
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0) 80%
+  );
+  animation: celebration-large-backdrop 5500ms ease-out forwards;
+}
+
+@keyframes celebration-large-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  55% {
+    transform: scale(0.98);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+.celebration-large-enter {
+  animation: celebration-large-enter 5500ms cubic-bezier(0.16, 1, 0.3, 1)
+    forwards;
+}
+
+@keyframes celebration-large-emoji-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.celebration-large-emoji {
+  animation: celebration-large-emoji-bounce 1.4s ease-in-out infinite;
+}
+
+/* Trophy drop — falls from the top, bounces near 50vh, then fades.
+   Used as a sports-theme flourish. */
+@keyframes celebration-trophy-drop {
+  0% {
+    transform: translate(-50%, -120%) rotate(-12deg);
+    opacity: 0;
+  }
+  35% {
+    transform: translate(-50%, 56vh) rotate(4deg);
+    opacity: 1;
+  }
+  48% {
+    transform: translate(-50%, 44vh) rotate(-2deg);
+  }
+  62% {
+    transform: translate(-50%, 52vh) rotate(2deg);
+  }
+  74% {
+    transform: translate(-50%, 50vh) rotate(0deg);
+  }
+  88% {
+    transform: translate(-50%, 50vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 30vh) rotate(0deg);
+    opacity: 0;
+  }
+}
+.celebration-trophy-drop {
+  animation: celebration-trophy-drop 3.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+    forwards;
+}
+
+/* Neon pulse — radial wash expanding from center using the theme's
+   --primary color. Sits behind the popup so text stays readable. */
+@keyframes celebration-neon-pulse {
+  0% {
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.0) 0%,
+      transparent 0%
+    );
+    opacity: 0;
+  }
+  20% {
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.45) 0%,
+      hsl(var(--primary) / 0.15) 30%,
+      transparent 60%
+    );
+    opacity: 1;
+  }
+  100% {
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.0) 0%,
+      hsl(var(--primary) / 0.0) 100%,
+      transparent 100%
+    );
+    opacity: 0;
+  }
+}
+.celebration-neon-pulse {
+  animation: celebration-neon-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-trophy-drop,
+  .celebration-neon-pulse {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-small-enter,
+  .celebration-large-backdrop,
+  .celebration-large-enter,
+  .celebration-large-emoji {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@keyframes tv-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tv-panel-enter {
+  animation: tv-panel-enter 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tv-rank-up-pulse {
+  0% { background-color: rgb(16 185 129 / 0.18); border-color: rgb(16 185 129 / 0.5); }
+  100% { background-color: rgb(24 24 27 / 0.6); }
+}
+.tv-rank-up {
+  animation: tv-rank-up-pulse 2.4s ease-out;
+}
+
+@keyframes tv-rank-down-pulse {
+  0% { background-color: rgb(225 29 72 / 0.15); border-color: rgb(225 29 72 / 0.5); }
+  100% { background-color: rgb(24 24 27 / 0.6); }
+}
+.tv-rank-down {
+  animation: tv-rank-down-pulse 2.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-panel-enter,
+  .tv-rank-up,
+  .tv-rank-down {
+    animation: none;
+  }
+}
+
+/* TV ticker — scrolling marquee. Content is duplicated by the component
+   so translating -50% lands at the original 0%, looping seamlessly. */
+@keyframes tv-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.tv-ticker-track {
+  animation: tv-ticker-scroll 60s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-ticker-track {
+    animation: none;
+  }
+}
+
+/* Avatar status effects.
+   on_fire — animated orange glow halo
+   hot_streak — slower amber pulse
+   needs_spark — desaturated + dimmed
+*/
+@keyframes avatar-fire-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(251, 146, 60, 0.55),
+      0 0 14px rgba(249, 115, 22, 0.6);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(251, 146, 60, 0.75),
+      0 0 26px rgba(249, 115, 22, 0.9);
+  }
+}
+.avatar-on-fire {
+  animation: avatar-fire-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes avatar-hot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+.avatar-hot-streak {
+  animation: avatar-hot-pulse 2.2s ease-out infinite;
+}
+
+.avatar-dimmed {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+/* Closer Mode — sharp, static blue highlight (no animation). */
+.avatar-closer-mode {
+  box-shadow:
+    0 0 0 2px rgb(59 130 246),
+    0 0 14px rgba(59, 130, 246, 0.55);
+}
+
+/* Referral Beast — animated green glow (slower than fire, calmer rhythm). */
+@keyframes avatar-referral-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgb(16 185 129 / 0.85),
+      0 0 12px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgb(34 197 94 / 0.95),
+      0 0 22px rgba(34, 197, 94, 0.7);
+  }
+}
+.avatar-referral-beast {
+  animation: avatar-referral-glow 2.4s ease-in-out infinite;
+}
+
+/* Streak frame — extra warm halo on top of the rose ring. */
+.avatar-frame-streak {
+  filter: drop-shadow(0 0 4px rgb(251 113 133 / 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-on-fire,
+  .avatar-hot-streak,
+  .avatar-referral-beast {
+    animation: none;
+  }
+  .avatar-on-fire {
+    box-shadow:
+      0 0 0 3px rgba(251, 146, 60, 0.6),
+      0 0 18px rgba(249, 115, 22, 0.7);
+  }
+  .avatar-referral-beast {
+    box-shadow:
+      0 0 0 3px rgb(16 185 129),
+      0 0 16px rgba(16, 185, 129, 0.55);
+  }
+}

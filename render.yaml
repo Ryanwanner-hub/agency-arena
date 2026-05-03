@@ -1,0 +1,22 @@
+# Render blueprint — see https://render.com/docs/blueprint-spec
+# Importing this repo as a Blueprint creates the API service below.
+# After deploy, set the ``ALLOWED_ORIGINS`` env var in the Render dashboard
+# to the Vercel URL of the frontend (and any preview domains you want).
+services:
+  - type: web
+    name: agency-arena-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SEED_ON_STARTUP
+        value: "true"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Leave DATABASE_URL unset to use ephemeral SQLite. Set it to a
+      # Postgres URL (e.g. from a Render Postgres add-on) for persistence.
+      - key: DATABASE_URL
+        sync: false

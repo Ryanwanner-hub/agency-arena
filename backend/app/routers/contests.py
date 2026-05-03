@@ -1,0 +1,112 @@
+from datetime import datetime
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.contest_engine import (
+    ALLOWED_METRICS,
+    auto_renew_contests,
+    compute_standings,
+    contest_status,
+)
+from app.database import get_db
+from app.models import Contest
+from app.schemas.contest import ContestCreate, ContestListItem, ContestRead
+from app.schemas.contest_standings import ContestStandings, StandingsEntry
+
+router = APIRouter(prefix="/contests", tags=["contests"])
+
+ALLOWED_TYPES = {"daily", "weekly", "custom"}
+
+
+@router.get("", response_model=List[ContestListItem])
+def list_contests(db: Session = Depends(get_db)):
+    today = datetime.utcnow().date()
+    auto_renew_contests(db, today)
+
+    contests = db.query(Contest).order_by(Contest.start_date.desc()).all()
+    out: List[ContestListItem] = []
+    for c in contests:
+        st = contest_status(c, today)
+        leader_name = None
+        leader_value = None
+        if st in ("active", "ended"):
+            standings = compute_standings(db, c)
+            if standings:
+                top = standings[0]
+                # Only surface a "leader" if their value is meaningful
+                if top.value > 0 or c.metric == "improved":
+                    leader_name = top.name
+                    leader_value = top.value
+        out.append(
+            ContestListItem(
+                id=c.id,
+                name=c.name,
+                type=c.type,
+                metric=c.metric,
+                start_date=c.start_date,
+                end_date=c.end_date,
+                auto_renew=c.auto_renew,
+                created_at=c.created_at,
+                status=st,
+                leader_name=leader_name,
+                leader_value=leader_value,
+            )
+        )
+    return out
+
+
+@router.post("", response_model=ContestRead, status_code=status.HTTP_201_CREATED)
+def create_contest(payload: ContestCreate, db: Session = Depends(get_db)):
+    if payload.metric not in ALLOWED_METRICS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"metric must be one of {sorted(ALLOWED_METRICS)}",
+        )
+    if payload.type not in ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"type must be one of {sorted(ALLOWED_TYPES)}",
+        )
+    if payload.end_date < payload.start_date:
+        raise HTTPException(
+            status_code=422,
+            detail="end_date must be on or after start_date",
+        )
+
+    contest = Contest(**payload.model_dump())
+    db.add(contest)
+    db.commit()
+    db.refresh(contest)
+    return contest
+
+
+@router.get("/{contest_id}/standings", response_model=ContestStandings)
+def get_standings(contest_id: int, db: Session = Depends(get_db)):
+    contest = db.query(Contest).filter(Contest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Contest {contest_id} not found",
+        )
+
+    today = datetime.utcnow().date()
+    standings = compute_standings(db, contest)
+    return ContestStandings(
+        contest=contest,
+        status=contest_status(contest, today),
+        entries=[
+            StandingsEntry(
+                rank=s.rank,
+                agent_id=s.agent_id,
+                name=s.name,
+                role=s.role,
+                avatar_url=s.avatar_url,
+                value=s.value,
+                current_value=s.current_value,
+                previous_value=s.previous_value,
+            )
+            for s in standings
+        ],
+    )

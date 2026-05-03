@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+.vscode/
+*.log
+.claude/
+
+# Local env files (committed examples live in app dirs)
+.env
+.env.local
