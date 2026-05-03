@@ -307,8 +307,8 @@ function PointSection() {
       </CardHeader>
       <CardContent>
         <p className="mb-3 text-xs text-muted-foreground">
-          Edits are saved locally for now. Existing activities keep the points
-          they were scored with; only future activities use the new values.
+          Edits apply to future scoring and sync back to the API. Existing
+          activities keep the points they were originally scored with.
         </p>
         <div className="overflow-hidden rounded-md border">
           <table className="w-full text-sm">

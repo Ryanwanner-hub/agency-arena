@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models import Agent, DailyScore
 from app.schemas.leaderboard import LeaderboardEntry, LeaderboardResponse, Period
 from app.scoring import close_rate
+from app.time_utils import business_today
 
 router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 
@@ -33,7 +34,7 @@ def get_leaderboard(
     period: Period = "daily",
     db: Session = Depends(get_db),
 ):
-    today = datetime.utcnow().date()
+    today = business_today()
     start, end = _period_window(period, today)
 
     # Prior equal-length window, immediately preceding the current one.

@@ -8,6 +8,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    Text,
     String,
     UniqueConstraint,
     func,
@@ -236,6 +237,12 @@ class Settings(Base):
     id = Column(Integer, primary_key=True)
     theme = Column(String(40), nullable=False, default="corporate")
     current_agent_id = Column(Integer, nullable=False, default=1)
+    point_overrides = Column(
+        Text,
+        nullable=False,
+        default="{}",
+        server_default="{}",
+    )
     updated_at = Column(
         DateTime,
         nullable=False,

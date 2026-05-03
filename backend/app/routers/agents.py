@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -18,6 +18,7 @@ from app.schemas.profile import (
     LifetimeStats,
 )
 from app.scoring import close_rate
+from app.time_utils import business_today
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -45,6 +46,16 @@ MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2 MB
 
 UPLOAD_DIR = Path("uploads") / "avatars"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _delete_local_avatar(avatar_url: Optional[str]) -> None:
+    if not avatar_url or not avatar_url.startswith("/uploads/avatars/"):
+        return
+    path = UPLOAD_DIR / avatar_url.rsplit("/", 1)[-1]
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
 
 
 @router.get("", response_model=List[AgentRead])
@@ -99,7 +110,11 @@ def update_agent(
                 detail=f"avatar_preset must be one of {sorted(ALLOWED_PRESETS)}",
             )
         # Choosing a preset clears any uploaded avatar so they don't conflict.
+        _delete_local_avatar(agent.avatar_url)
         data["avatar_url"] = None
+
+    if "avatar_url" in data and data["avatar_url"] is None:
+        _delete_local_avatar(agent.avatar_url)
 
     for key, value in data.items():
         setattr(agent, key, value)
@@ -138,10 +153,12 @@ async def upload_avatar(
     path = UPLOAD_DIR / filename
     path.write_bytes(contents)
 
+    old_avatar_url = agent.avatar_url
     agent.avatar_url = f"/uploads/avatars/{filename}"
     agent.avatar_preset = None  # uploaded image takes precedence
     db.commit()
     db.refresh(agent)
+    _delete_local_avatar(old_avatar_url)
     return agent
 
 
@@ -221,7 +238,7 @@ def get_agent_profile(
         for b, earned_at in badge_rows
     ]
 
-    cutoff = datetime.utcnow().date() - timedelta(days=history_days - 1)
+    cutoff = business_today() - timedelta(days=history_days - 1)
     history = (
         db.query(DailyScore)
         .filter(DailyScore.agent_id == agent_id, DailyScore.date >= cutoff)

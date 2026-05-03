@@ -14,12 +14,13 @@ from app.schemas.report import (
     WeeklyReport,
 )
 from app.scoring import close_rate
+from app.time_utils import business_today, business_window_bounds
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 def _week_window(week_of: Optional[date]) -> tuple[date, date]:
-    base = week_of or datetime.utcnow().date()
+    base = week_of or business_today()
     start = base - timedelta(days=base.weekday())
     return start, start + timedelta(days=6)
 
@@ -106,8 +107,7 @@ def get_weekly_report(
         else:
             top_performers[metric] = None
 
-    week_start_dt = datetime.combine(start, datetime.min.time())
-    week_end_dt = datetime.combine(end + timedelta(days=1), datetime.min.time())
+    week_start_dt, week_end_dt = business_window_bounds(start, end)
     type_rows = (
         db.query(Activity.activity_type, func.count(Activity.id))
         .filter(

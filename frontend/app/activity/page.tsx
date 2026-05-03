@@ -1,22 +1,14 @@
 import { ActivityClient } from "./ActivityClient";
-import { api, type AgentProfile, type LeaderboardResponse } from "@/lib/api";
+import { api, type ActivityFeedItem } from "@/lib/api";
 
 export const metadata = { title: "Activity · Agency Arena" };
 
 export default async function ActivityPage() {
-  let profiles: AgentProfile[] = [];
+  let items: ActivityFeedItem[] = [];
   let error: string | null = null;
 
   try {
-    // Reuse the dashboard's data shape so the activity feed sees the same
-    // recent windows. Profiles include ``recent_activity`` per agent — we
-    // flatten + sort client-side.
-    const lb = await api<LeaderboardResponse>("/leaderboard?period=daily");
-    profiles = await Promise.all(
-      lb.entries.map((e) =>
-        api<AgentProfile>(`/agents/${e.agent_id}/profile`),
-      ),
-    );
+    items = await api<ActivityFeedItem[]>("/activity/feed?limit=500");
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load activity";
   }
@@ -29,5 +21,5 @@ export default async function ActivityPage() {
     );
   }
 
-  return <ActivityClient profiles={profiles} />;
+  return <ActivityClient items={items} />;
 }

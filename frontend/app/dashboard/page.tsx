@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     [profiles, contests] = await Promise.all([
       Promise.all(
         leaderboard.entries.map((e) =>
-          api<AgentProfile>(`/agents/${e.agent_id}/profile`),
+          api<AgentProfile>(`/agents/${e.agent_id}/profile?recent_count=100`),
         ),
       ),
       api<ContestListItem[]>("/contests"),

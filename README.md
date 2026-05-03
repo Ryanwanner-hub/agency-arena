@@ -140,6 +140,8 @@ The repo deploys cleanly as **frontend on Vercel** + **backend on Render**.
 2. After the first deploy, set these env vars on the service:
    - `ALLOWED_ORIGINS` — comma-separated, e.g.
      `https://agency-arena.vercel.app,https://*.vercel.app`
+   - `BUSINESS_TIMEZONE` — IANA timezone for score windows, e.g.
+     `America/New_York`
    - `DATABASE_URL` (optional) — a Postgres URL for persistence; leave
      unset to use the ephemeral SQLite that re-seeds on each cold start.
 3. Note the public URL Render gives the service

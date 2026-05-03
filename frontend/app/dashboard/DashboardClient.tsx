@@ -18,6 +18,7 @@ import {
   type ContestListItem,
   type LeaderboardResponse,
 } from "@/lib/api";
+import { formatDateOnly } from "@/lib/dates";
 import { computeStatus, computeStreak } from "@/lib/status";
 
 export function DashboardClient({
@@ -32,6 +33,7 @@ export function DashboardClient({
   const [leaderboard, setLeaderboard] =
     useState<LeaderboardResponse>(initialLeaderboard);
   const [profiles, setProfiles] = useState<AgentProfile[]>(initialProfiles);
+  const [contestList, setContestList] = useState<ContestListItem[]>(contests);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const profilesById = useMemo(
@@ -80,11 +82,22 @@ export function DashboardClient({
   const deltaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    let cancelled = false;
+    let inFlight = false;
+
+    const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        const next = await api<LeaderboardResponse>(
-          "/leaderboard?period=daily",
-        );
+        const next = await api<LeaderboardResponse>("/leaderboard?period=daily");
+        const [nextProfiles, nextContests] = await Promise.all([
+          Promise.all(
+            next.entries.map((e) =>
+              api<AgentProfile>(`/agents/${e.agent_id}/profile?recent_count=100`),
+            ),
+          ),
+          api<ContestListItem[]>("/contests"),
+        ]);
         const newTopId = next.entries[0]?.agent_id ?? null;
         const top1Flipped =
           newTopId !== null && newTopId !== topAgentIdRef.current;
@@ -124,11 +137,11 @@ export function DashboardClient({
         // top-3 entry, or any agent's rank shifted) so trend chips and
         // momentum statuses stay in sync with the latest data.
         const anyMovement = Object.keys(deltas).length > 0;
-        if (top1Flipped || newcomers.length > 0 || anyMovement) {
-          topAgentIdRef.current = newTopId;
-          top3IdsRef.current = nextTop3;
-          setLeaderboard(next);
-        }
+        topAgentIdRef.current = newTopId;
+        top3IdsRef.current = nextTop3;
+        setLeaderboard(next);
+        setProfiles(nextProfiles);
+        setContestList(nextContests);
 
         if (newcomers.length > 0) {
           const e = newcomers[0];
@@ -143,9 +156,18 @@ export function DashboardClient({
         }
       } catch {
         // ignore transient fetch failures
+      } finally {
+        inFlight = false;
       }
+    };
+
+    const interval = setInterval(() => {
+      if (!cancelled) void load();
     }, 15_000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [sound, celebrate]);
 
   useEffect(
@@ -187,7 +209,7 @@ export function DashboardClient({
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Today's leaderboard ·{" "}
-          {new Date(leaderboard.start_date).toLocaleDateString(undefined, {
+          {formatDateOnly(leaderboard.start_date, {
             weekday: "long",
             month: "long",
             day: "numeric",
@@ -216,7 +238,7 @@ export function DashboardClient({
             leaderboard={leaderboard}
             profiles={profiles}
           />
-          <ActiveContestCard contests={contests} />
+          <ActiveContestCard contests={contestList} />
         </aside>
       </div>
 

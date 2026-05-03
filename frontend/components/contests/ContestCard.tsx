@@ -3,6 +3,7 @@
 import { Calendar, RefreshCw, Trophy } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateOnly } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { ContestListItem, ContestStatus } from "@/lib/api";
 
@@ -27,7 +28,7 @@ const STATUS_LABEL: Record<ContestStatus, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return formatDateOnly(iso, {
     month: "short",
     day: "numeric",
   });

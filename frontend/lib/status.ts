@@ -1,6 +1,7 @@
 import type { AvatarStatus } from "@/components/avatar/Avatar";
 
 import type { DailyHistoryPoint } from "./api";
+import { localDateKeyNDaysAgo } from "./dates";
 
 export type AgentStatus =
   | "on_fire"
@@ -9,19 +10,13 @@ export type AgentStatus =
   | "needs_spark"
   | "slipping";
 
-function utcDateNDaysAgo(n: number): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - n);
-  return d.toISOString().slice(0, 10);
-}
-
 /** Consecutive UTC days (counting back from today) where the agent had any
  * activity (i.e. ``total_points > 0``). Stops at the first quiet day. */
 export function computeStreak(history: DailyHistoryPoint[]): number {
   const byDate = new Map(history.map((h) => [h.date, h.total_points]));
   let streak = 0;
   for (let i = 0; i < 30; i++) {
-    if ((byDate.get(utcDateNDaysAgo(i)) ?? 0) > 0) streak++;
+    if ((byDate.get(localDateKeyNDaysAgo(i)) ?? 0) > 0) streak++;
     else break;
   }
   return streak;

@@ -14,10 +14,11 @@ import {
   api,
   displayName,
   type AgentProfile,
-  type Contest,
+  type ContestListItem,
   type EarnedBadge,
   type LeaderboardResponse,
 } from "@/lib/api";
+import { formatDateOnly, localDateKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 const PANELS: TVPanelKey[] = [
@@ -72,7 +73,7 @@ type AwardEntry = {
 type State = {
   leaderboard: LeaderboardResponse;
   profiles: AgentProfile[];
-  contests: Contest[];
+  contests: ContestListItem[];
 };
 
 async function fetchAll(): Promise<State> {
@@ -82,10 +83,10 @@ async function fetchAll(): Promise<State> {
   const [profiles, contests] = await Promise.all([
     Promise.all(
       leaderboard.entries.map((e) =>
-        api<AgentProfile>(`/agents/${e.agent_id}/profile`),
+        api<AgentProfile>(`/agents/${e.agent_id}/profile?recent_count=100`),
       ),
     ),
-    api<Contest[]>("/contests"),
+    api<ContestListItem[]>("/contests"),
   ]);
   return { leaderboard, profiles, contests };
 }
@@ -111,7 +112,10 @@ export default function TVPage() {
   // Auto-refresh every REFRESH_MS
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
     async function load() {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const data = await fetchAll();
         if (cancelled) return;
@@ -120,6 +124,8 @@ export default function TVPage() {
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to load");
+      } finally {
+        inFlight = false;
       }
     }
     load();
@@ -397,7 +403,7 @@ function BadgesPanel({ awards }: { awards: AwardEntry[] }) {
   );
 }
 
-function ContestsPanel({ contests }: { contests: Contest[] }) {
+function ContestsPanel({ contests }: { contests: ContestListItem[] }) {
   const sorted = [...contests].sort((a, b) =>
     a.end_date.localeCompare(b.end_date),
   );
@@ -408,7 +414,7 @@ function ContestsPanel({ contests }: { contests: Contest[] }) {
       </div>
     );
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   return (
     <div className="grid w-full grid-cols-1 gap-5 self-start lg:grid-cols-2">
       {sorted.map((c) => {
@@ -437,12 +443,12 @@ function ContestsPanel({ contests }: { contests: Contest[] }) {
             <p className="text-4xl font-semibold tracking-tight">{c.name}</p>
             <p className="flex items-center gap-2 text-lg text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              {new Date(c.start_date).toLocaleDateString(undefined, {
+              {formatDateOnly(c.start_date, {
                 month: "short",
                 day: "numeric",
               })}
               {" → "}
-              {new Date(c.end_date).toLocaleDateString(undefined, {
+              {formatDateOnly(c.end_date, {
                 month: "short",
                 day: "numeric",
               })}

@@ -1,13 +1,15 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 
-from app.database import Base, engine
+from app.contest_engine import auto_renew_contests
+from app.database import Base, SessionLocal, engine
 from app.models import (  # noqa: F401  (register models with Base.metadata)
     Activity,
     Agent,
@@ -29,6 +31,7 @@ from app.routers import (
     settings as settings_router,
 )
 from app.seed.seed_data import seed_database
+from app.time_utils import business_today
 
 
 SEED_ON_STARTUP = os.environ.get("SEED_ON_STARTUP", "true").strip().lower() in (
@@ -50,6 +53,17 @@ ALLOWED_ORIGINS = [
 ]
 
 
+def _origin_regex(origins: list[str]) -> Optional[str]:
+    wildcard_patterns = [o for o in origins if "*" in o]
+    if not wildcard_patterns:
+        return None
+
+    escaped = []
+    for pattern in wildcard_patterns:
+        escaped.append("^" + pattern.replace(".", r"\.").replace("*", ".*") + "$")
+    return "|".join(escaped)
+
+
 # Lightweight schema migrations for columns added after initial deploy.
 # `Base.metadata.create_all` only creates missing *tables*, not missing
 # *columns* on existing ones. This helper picks up the slack so existing
@@ -59,6 +73,9 @@ _PENDING_COLUMNS: dict[str, dict[str, str]] = {
         "avatar_color": "VARCHAR(32)",
         "avatar_frame": "VARCHAR(32)",
         "status_effect": "VARCHAR(32)",
+    },
+    "settings": {
+        "point_overrides": "TEXT NOT NULL DEFAULT '{}'",
     },
 }
 
@@ -83,6 +100,11 @@ async def lifespan(app: FastAPI):
     _ensure_columns()
     if SEED_ON_STARTUP:
         seed_database()
+    db = SessionLocal()
+    try:
+        auto_renew_contests(db, business_today())
+    finally:
+        db.close()
     yield
 
 
@@ -94,7 +116,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[o for o in ALLOWED_ORIGINS if "*" not in o],
+    allow_origin_regex=_origin_regex(ALLOWED_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

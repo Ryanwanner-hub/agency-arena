@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 
+import { API_BASE, type Settings } from "@/lib/api";
 import {
   DEFAULT_SETTINGS,
   localStorageRepository,
@@ -54,10 +55,47 @@ export function ManagerSettingsProvider({
 }) {
   const [settings, setSettings] = useState<ManagerSettings>(DEFAULT_SETTINGS);
 
+  const syncPointOverrides = useCallback((pointOverrides: Record<string, number>) => {
+    fetch(`${API_BASE}/settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ point_overrides: pointOverrides }),
+      keepalive: true,
+    }).catch(() => {
+      // Local settings still work; server sync can recover on the next edit.
+    });
+  }, []);
+
   // Hydrate from storage on mount. Defaults stay in place during SSR so
   // the first render matches between server and client.
   useEffect(() => {
-    setSettings(mergeSettings(repo.load()));
+    const local = mergeSettings(repo.load());
+    setSettings(local);
+
+    let cancelled = false;
+    fetch(`${API_BASE}/settings`)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`API ${res.status}`);
+        }
+        return (await res.json()) as Settings;
+      })
+      .then((server) => {
+        if (cancelled) return;
+        const merged = {
+          ...local,
+          pointOverrides: { ...(server.point_overrides ?? {}) },
+        };
+        repo.save(merged);
+        setSettings(merged);
+      })
+      .catch(() => {
+        // Best effort only.
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const persist = useCallback((next: ManagerSettings) => {
@@ -112,19 +150,21 @@ export function ManagerSettingsProvider({
         else overrides[activityType] = points;
         const next: ManagerSettings = { ...prev, pointOverrides: overrides };
         repo.save(next);
+        syncPointOverrides(next.pointOverrides);
         return next;
       });
     },
-    [],
+    [syncPointOverrides],
   );
 
   const resetPoints = useCallback(() => {
     setSettings((prev) => {
       const next: ManagerSettings = { ...prev, pointOverrides: {} };
       repo.save(next);
+      syncPointOverrides(next.pointOverrides);
       return next;
     });
-  }, []);
+  }, [syncPointOverrides]);
 
   const reset = useCallback(() => {
     persist(DEFAULT_SETTINGS);

@@ -7,22 +7,12 @@ import { Avatar } from "@/components/avatar/Avatar";
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  type ActivityFeedItem,
   displayName,
-  type Activity,
-  type AgentProfile,
 } from "@/lib/api";
+import { localDateKey } from "@/lib/dates";
 import { ACTIVITY_LABEL } from "@/lib/manager-settings";
 import { cn } from "@/lib/utils";
-
-type Item = {
-  id: number;
-  agent: AgentProfile["agent"];
-  activity_type: string;
-  points: number;
-  premium: number | null;
-  source: string | null;
-  created_at: string;
-};
 
 type Filter = "all" | "wins" | "quotes" | "referrals";
 
@@ -60,11 +50,11 @@ function dayKey(iso: string): string {
 
 function formatDay(iso: string): string {
   const d = new Date(iso + "T00:00:00");
-  const today = new Date();
+  const todayKey = localDateKey();
   const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (iso === today.toISOString().slice(0, 10)) return "Today";
-  if (iso === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (iso === todayKey) return "Today";
+  if (iso === localDateKey(yesterday)) return "Yesterday";
   return d.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -72,31 +62,12 @@ function formatDay(iso: string): string {
   });
 }
 
-export function ActivityClient({ profiles }: { profiles: AgentProfile[] }) {
+export function ActivityClient({ items }: { items: ActivityFeedItem[] }) {
   const { settings } = useManagerSettings();
   const showPremium = settings.display.showPremium;
 
   const [filter, setFilter] = useState<Filter>("all");
   const [agentId, setAgentId] = useState<number | "all">("all");
-
-  const items = useMemo<Item[]>(() => {
-    const out: Item[] = [];
-    for (const p of profiles) {
-      for (const a of p.recent_activity) {
-        out.push({
-          id: a.id,
-          agent: p.agent,
-          activity_type: a.activity_type,
-          points: a.points,
-          premium: a.premium,
-          source: a.source,
-          created_at: a.created_at,
-        });
-      }
-    }
-    out.sort((a, b) => b.created_at.localeCompare(a.created_at));
-    return out;
-  }, [profiles]);
 
   const filtered = useMemo(() => {
     return items.filter((it) => {
@@ -110,7 +81,7 @@ export function ActivityClient({ profiles }: { profiles: AgentProfile[] }) {
   }, [items, filter, agentId]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, Item[]>();
+    const map = new Map<string, ActivityFeedItem[]>();
     for (const it of filtered) {
       const key = dayKey(it.created_at);
       const arr = map.get(key) ?? [];
@@ -135,14 +106,22 @@ export function ActivityClient({ profiles }: { profiles: AgentProfile[] }) {
   }, [items, agentId]);
 
   const totalPoints = filtered.reduce((sum, it) => sum + it.points, 0);
-  const agents = profiles.map((p) => p.agent);
+  const agents = useMemo(() => {
+    const byId = new Map<number, ActivityFeedItem["agent"]>();
+    items.forEach((item) => {
+      byId.set(item.agent.id, item.agent);
+    });
+    return Array.from(byId.values()).sort((a, b) =>
+      displayName(a).localeCompare(displayName(b)),
+    );
+  }, [items]);
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         <p className="text-sm text-muted-foreground">
-          Every event the team has logged in their recent activity windows.
+          Recent team activity across the office.
         </p>
       </header>
 

@@ -10,6 +10,7 @@ import {
   type ContestMetric,
   type ContestType,
 } from "@/lib/api";
+import { localDateKey } from "@/lib/dates";
 
 const METRICS: { value: ContestMetric; label: string; description: string }[] =
   [
@@ -36,20 +37,19 @@ const METRICS: { value: ContestMetric; label: string; description: string }[] =
   ];
 
 function todayUtcISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey();
 }
 
 function thisWeekDates(): { start: string; end: string } {
   const now = new Date();
-  // UTC Monday
-  const dayOfWeek = (now.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+  const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0..Sun=6
   const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - dayOfWeek);
+  monday.setDate(now.getDate() - dayOfWeek);
   const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
+  sunday.setDate(monday.getDate() + 6);
   return {
-    start: monday.toISOString().slice(0, 10),
-    end: sunday.toISOString().slice(0, 10),
+    start: localDateKey(monday),
+    end: localDateKey(sunday),
   };
 }
 

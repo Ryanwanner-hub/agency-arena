@@ -28,6 +28,7 @@ from app.models import (
     ReferralPartner,
 )
 from app.scoring import calculate_points, recalculate_daily_score
+from app.time_utils import business_day_from_utc_naive
 
 
 SEED_DAYS = 14
@@ -244,15 +245,12 @@ def _seed_contests(db, today) -> None:
     week_start = today - timedelta(days=today.weekday())
     db.add_all(
         [
-            # Auto-renew template — seeded as ended yesterday so the lazy
-            # auto-renew kicks in on the first /contests fetch and creates a
-            # new instance for today. Demonstrates the auto-reset feature.
             Contest(
                 name="Daily Quote Dash",
                 type="daily",
                 metric="quotes",
-                start_date=today - timedelta(days=1),
-                end_date=today - timedelta(days=1),
+                start_date=today,
+                end_date=today,
                 auto_renew=True,
             ),
             # Active weekly contests — one per non-improved metric.
@@ -317,7 +315,7 @@ def seed_database(force: bool = False) -> bool:
 
         rng = random.Random(RNG_SEED)
         now = datetime.utcnow()
-        today = now.date()
+        today = business_day_from_utc_naive(now)
 
         agents = _seed_agents(db, rng, today)
         _seed_activities(db, rng, agents, now)

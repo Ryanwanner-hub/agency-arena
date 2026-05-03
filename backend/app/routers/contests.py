@@ -1,29 +1,20 @@
-from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.contest_engine import (
-    ALLOWED_METRICS,
-    auto_renew_contests,
-    compute_standings,
-    contest_status,
-)
+from app.contest_engine import compute_standings, contest_status
 from app.database import get_db
 from app.models import Contest
 from app.schemas.contest import ContestCreate, ContestListItem, ContestRead
 from app.schemas.contest_standings import ContestStandings, StandingsEntry
+from app.time_utils import business_today
 
 router = APIRouter(prefix="/contests", tags=["contests"])
 
-ALLOWED_TYPES = {"daily", "weekly", "custom"}
-
-
 @router.get("", response_model=List[ContestListItem])
 def list_contests(db: Session = Depends(get_db)):
-    today = datetime.utcnow().date()
-    auto_renew_contests(db, today)
+    today = business_today()
 
     contests = db.query(Contest).order_by(Contest.start_date.desc()).all()
     out: List[ContestListItem] = []
@@ -59,16 +50,6 @@ def list_contests(db: Session = Depends(get_db)):
 
 @router.post("", response_model=ContestRead, status_code=status.HTTP_201_CREATED)
 def create_contest(payload: ContestCreate, db: Session = Depends(get_db)):
-    if payload.metric not in ALLOWED_METRICS:
-        raise HTTPException(
-            status_code=422,
-            detail=f"metric must be one of {sorted(ALLOWED_METRICS)}",
-        )
-    if payload.type not in ALLOWED_TYPES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"type must be one of {sorted(ALLOWED_TYPES)}",
-        )
     if payload.end_date < payload.start_date:
         raise HTTPException(
             status_code=422,
@@ -91,7 +72,7 @@ def get_standings(contest_id: int, db: Session = Depends(get_db)):
             detail=f"Contest {contest_id} not found",
         )
 
-    today = datetime.utcnow().date()
+    today = business_today()
     standings = compute_standings(db, contest)
     return ContestStandings(
         contest=contest,

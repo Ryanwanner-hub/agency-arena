@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api, type ContestListItem, type ContestStandings } from "@/lib/api";
+import { formatDateOnly } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 const METRIC_LABEL: Record<string, string> = {
@@ -28,7 +29,7 @@ const RANK_TILE: Record<number, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return formatDateOnly(iso, {
     month: "short",
     day: "numeric",
   });

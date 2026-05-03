@@ -16,6 +16,8 @@ services:
         value: "true"
       - key: ALLOWED_ORIGINS
         sync: false
+      - key: BUSINESS_TIMEZONE
+        value: America/New_York
       # Leave DATABASE_URL unset to use ephemeral SQLite. Set it to a
       # Postgres URL (e.g. from a Render Postgres add-on) for persistence.
       - key: DATABASE_URL

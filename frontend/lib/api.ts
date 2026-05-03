@@ -52,6 +52,10 @@ export type Activity = {
   created_at: string;
 };
 
+export type ActivityFeedItem = Activity & {
+  agent: Agent;
+};
+
 export type ContestType = "daily" | "weekly" | "custom";
 export type ContestMetric =
   | "quotes"
@@ -174,5 +178,6 @@ export type Theme = "corporate" | "neon" | "sports" | "casino";
 export type Settings = {
   theme: Theme;
   current_agent_id: number;
+  point_overrides: Record<string, number>;
   updated_at: string;
 };
