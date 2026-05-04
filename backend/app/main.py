@@ -78,6 +78,10 @@ _PENDING_COLUMNS: dict[str, dict[str, str]] = {
     "settings": {
         "point_overrides": "TEXT NOT NULL DEFAULT '{}'",
     },
+    "daily_scores": {
+        "bundles": "INTEGER NOT NULL DEFAULT 0",
+        "reviews": "INTEGER NOT NULL DEFAULT 0",
+    },
 }
 
 

@@ -63,6 +63,8 @@ export type ContestMetric =
   | "quotes"
   | "policies"
   | "referrals"
+  | "bundles"
+  | "reviews"
   | "points"
   | "improved";
 export type ContestStatus = "pending" | "active" | "ended";

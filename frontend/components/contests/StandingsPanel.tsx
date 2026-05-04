@@ -10,6 +10,8 @@ const METRIC_LABEL: Record<string, string> = {
   quotes: "quotes",
   policies: "policies",
   referrals: "referrals",
+  bundles: "bundles",
+  reviews: "5-star reviews",
   points: "points",
   improved: "point change",
 };

@@ -114,6 +114,8 @@ class DailyScore(Base):
     policies = Column(Integer, nullable=False, default=0)
     referrals = Column(Integer, nullable=False, default=0)
     followups = Column(Integer, nullable=False, default=0)
+    bundles = Column(Integer, nullable=False, default=0, server_default="0")
+    reviews = Column(Integer, nullable=False, default=0, server_default="0")
     close_rate = Column(Float, nullable=False, default=0.0)
     created_at = Column(
         DateTime,

@@ -27,6 +27,8 @@ METRIC_COLUMNS = {
     "quotes": DailyScore.quotes,
     "policies": DailyScore.policies,
     "referrals": DailyScore.referrals,
+    "bundles": DailyScore.bundles,
+    "reviews": DailyScore.reviews,
 }
 
 ALLOWED_METRICS = set(METRIC_COLUMNS.keys()) | {"improved"}

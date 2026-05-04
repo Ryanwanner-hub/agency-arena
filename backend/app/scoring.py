@@ -33,6 +33,12 @@ QUOTE_TYPES = frozenset({"quote_completed"})
 POLICY_TYPES = frozenset({"policy_bound"})
 REFERRAL_TYPES = frozenset({"referral_received"})
 FOLLOWUP_TYPES = frozenset({"followup_completed"})
+# A "bundle" is anything that adds another policy to an existing customer:
+# multi-policy bind events and successful cross-sells both count.
+BUNDLE_TYPES = frozenset({"multi_policy_bonus", "cross_sell_sold"})
+# 5-star reviews. ``review_received`` is the only review activity tracked
+# today; if star ratings are added later, restrict this set then.
+REVIEW_TYPES = frozenset({"review_received"})
 
 
 def calculate_points(
@@ -91,6 +97,8 @@ def recalculate_daily_score(
     policies = sum(1 for a in activities if a.activity_type in POLICY_TYPES)
     referrals = sum(1 for a in activities if a.activity_type in REFERRAL_TYPES)
     followups = sum(1 for a in activities if a.activity_type in FOLLOWUP_TYPES)
+    bundles = sum(1 for a in activities if a.activity_type in BUNDLE_TYPES)
+    reviews = sum(1 for a in activities if a.activity_type in REVIEW_TYPES)
     rate = close_rate(policies, quotes)
 
     score = (
@@ -107,6 +115,8 @@ def recalculate_daily_score(
     score.policies = policies
     score.referrals = referrals
     score.followups = followups
+    score.bundles = bundles
+    score.reviews = reviews
     score.close_rate = rate
 
     db.flush()
@@ -127,6 +137,8 @@ def record_activity_daily_score(
     policies = 1 if activity_type in POLICY_TYPES else 0
     referrals = 1 if activity_type in REFERRAL_TYPES else 0
     followups = 1 if activity_type in FOLLOWUP_TYPES else 0
+    bundles = 1 if activity_type in BUNDLE_TYPES else 0
+    reviews = 1 if activity_type in REVIEW_TYPES else 0
 
     insert_values = {
         "agent_id": agent_id,
@@ -136,6 +148,8 @@ def record_activity_daily_score(
         "policies": policies,
         "referrals": referrals,
         "followups": followups,
+        "bundles": bundles,
+        "reviews": reviews,
         "close_rate": close_rate(policies, quotes),
     }
 
@@ -165,6 +179,8 @@ def record_activity_daily_score(
             "policies": policies_expr,
             "referrals": DailyScore.referrals + insert_stmt.excluded.referrals,
             "followups": DailyScore.followups + insert_stmt.excluded.followups,
+            "bundles": DailyScore.bundles + insert_stmt.excluded.bundles,
+            "reviews": DailyScore.reviews + insert_stmt.excluded.reviews,
             "close_rate": close_rate_expr,
         },
     )

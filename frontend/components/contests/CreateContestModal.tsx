@@ -26,6 +26,16 @@ const METRICS: { value: ContestMetric; label: string; description: string }[] =
       description: "Policies bound during the window.",
     },
     {
+      value: "bundles",
+      label: "Most bundles",
+      description: "Multi-policy binds + cross-sells closed in the window.",
+    },
+    {
+      value: "reviews",
+      label: "Most 5-star reviews",
+      description: "Customer reviews received during the window.",
+    },
+    {
       value: "referrals",
       label: "Most referrals",
       description: "Referrals received in the window.",
