@@ -1,13 +1,16 @@
 "use client";
 
-import { Activity as ActivityIcon, Filter } from "lucide-react";
+import { Activity as ActivityIcon, Filter, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { LogActivityModal } from "@/components/activity/LogActivityModal";
 import { Avatar } from "@/components/avatar/Avatar";
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type ActivityFeedItem,
+  type Agent,
   displayName,
 } from "@/lib/api";
 import { localDateKey } from "@/lib/dates";
@@ -62,12 +65,20 @@ function formatDay(iso: string): string {
   });
 }
 
-export function ActivityClient({ items }: { items: ActivityFeedItem[] }) {
+export function ActivityClient({
+  items,
+  agents,
+}: {
+  items: ActivityFeedItem[];
+  agents: Agent[];
+}) {
+  const router = useRouter();
   const { settings } = useManagerSettings();
   const showPremium = settings.display.showPremium;
 
   const [filter, setFilter] = useState<Filter>("all");
   const [agentId, setAgentId] = useState<number | "all">("all");
+  const [logging, setLogging] = useState(false);
 
   const filtered = useMemo(() => {
     return items.filter((it) => {
@@ -106,23 +117,31 @@ export function ActivityClient({ items }: { items: ActivityFeedItem[] }) {
   }, [items, agentId]);
 
   const totalPoints = filtered.reduce((sum, it) => sum + it.points, 0);
-  const agents = useMemo(() => {
-    const byId = new Map<number, ActivityFeedItem["agent"]>();
-    items.forEach((item) => {
-      byId.set(item.agent.id, item.agent);
-    });
-    return Array.from(byId.values()).sort((a, b) =>
-      displayName(a).localeCompare(displayName(b)),
-    );
-  }, [items]);
+  const sortedAgents = useMemo(
+    () =>
+      [...agents].sort((a, b) =>
+        displayName(a).localeCompare(displayName(b)),
+      ),
+    [agents],
+  );
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
-        <p className="text-sm text-muted-foreground">
-          Recent team activity across the office.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
+          <p className="text-sm text-muted-foreground">
+            Recent team activity across the office.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setLogging(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          Log activity
+        </button>
       </header>
 
       <Card>
@@ -186,7 +205,7 @@ export function ActivityClient({ items }: { items: ActivityFeedItem[] }) {
                 className="rounded-md border bg-background px-2 py-1 text-xs"
               >
                 <option value="all">All agents</option>
-                {agents.map((a) => (
+                {sortedAgents.map((a) => (
                   <option key={a.id} value={a.id}>
                     {displayName(a)}
                   </option>
@@ -262,6 +281,20 @@ export function ActivityClient({ items }: { items: ActivityFeedItem[] }) {
           )}
         </CardContent>
       </Card>
+
+      {logging && (
+        <LogActivityModal
+          agents={agents}
+          onClose={() => setLogging(false)}
+          onLogged={() => {
+            setLogging(false);
+            // Re-fetch the feed (server component) so the new event shows
+            // up immediately. Dashboard + contests pick it up on their
+            // next poll.
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
