@@ -17,16 +17,15 @@ const PREMIUM_TYPES = new Set<string>([
   "referral_converted",
 ]);
 
-/** Group the 12 activity types so the picker is scannable instead of one
- * 12-item list. Order within each group goes high-impact first. */
+/** Activity types exposed in the manual log UI. Quotes, follow-ups,
+ * speed-to-contact, and cross-sell attempts are intentionally hidden —
+ * those flow in via CRM integrations rather than being hand-logged. The
+ * backend still accepts all activity types; this list only gates the
+ * picker. */
 const TYPE_GROUPS: { label: string; types: string[] }[] = [
   {
     label: "Sales",
     types: ["policy_bound", "multi_policy_bonus", "cross_sell_sold"],
-  },
-  {
-    label: "Quotes",
-    types: ["quote_completed", "quote_started"],
   },
   {
     label: "Referrals",
@@ -35,10 +34,6 @@ const TYPE_GROUPS: { label: string; types: string[] }[] = [
   {
     label: "Reviews",
     types: ["review_received", "review_requested"],
-  },
-  {
-    label: "Other",
-    types: ["followup_completed", "speed_to_contact", "cross_sell_attempt"],
   },
 ];
 
