@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy, X } from "lucide-react";
+import { Pencil, Trash2, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -37,13 +37,23 @@ function formatValue(value: number, metric: string): string {
 export function StandingsPanel({
   contestId,
   onClose,
+  onEdit,
+  onDeleted,
 }: {
   contestId: number | null;
   onClose: () => void;
+  /** Called when the manager clicks the Edit button. The parent opens a
+   * dual-mode modal preloaded with the contest. */
+  onEdit?: (contestId: number) => void;
+  /** Called after a successful DELETE so the parent can drop it from the
+   * list and close the panel. */
+  onDeleted?: (contestId: number) => void;
 }) {
   const [data, setData] = useState<ContestStandings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (contestId === null) {
@@ -118,14 +128,82 @@ export function StandingsPanel({
               <h2 className="text-lg font-semibold">Standings</h2>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {data && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(data.contest.id)}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Edit contest"
+                title="Edit contest"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+            {data && onDeleted && (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Delete contest"
+                title="Delete contest"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </header>
+
+        {confirmingDelete && data && (
+          <div className="border-b bg-destructive/5 px-6 py-4">
+            <p className="text-sm font-medium">
+              Delete &ldquo;{data.contest.name}&rdquo;?
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This removes the contest and its standings. Logged activities
+              are unaffected.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await api(`/contests/${data.contest.id}`, {
+                      method: "DELETE",
+                    });
+                    onDeleted?.(data.contest.id);
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : "Failed to delete",
+                    );
+                    setDeleting(false);
+                    setConfirmingDelete(false);
+                  }
+                }}
+                disabled={deleting}
+                className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Yes, delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+                className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-5">
           {loading && (

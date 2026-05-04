@@ -27,11 +27,15 @@ export function ContestsClient({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const visible =
     filter === "all"
       ? contests
       : contests.filter((c) => c.status === filter);
+
+  const editingContest =
+    editingId !== null ? contests.find((c) => c.id === editingId) ?? null : null;
 
   async function refresh() {
     const next = await api<ContestListItem[]>("/contests");
@@ -107,6 +111,16 @@ export function ContestsClient({
       <StandingsPanel
         contestId={selectedId}
         onClose={() => setSelectedId(null)}
+        onEdit={(id) => {
+          setSelectedId(null);
+          setEditingId(id);
+        }}
+        onDeleted={async (id) => {
+          setSelectedId(null);
+          // Optimistic remove so the panel closes cleanly without waiting.
+          setContests((prev) => prev.filter((c) => c.id !== id));
+          await refresh();
+        }}
       />
 
       {creating && (
@@ -114,6 +128,17 @@ export function ContestsClient({
           onClose={() => setCreating(false)}
           onCreated={async () => {
             setCreating(false);
+            await refresh();
+          }}
+        />
+      )}
+
+      {editingContest && (
+        <CreateContestModal
+          editing={editingContest}
+          onClose={() => setEditingId(null)}
+          onCreated={async () => {
+            setEditingId(null);
             await refresh();
           }}
         />

@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from app.contest_engine import compute_standings, contest_status
 from app.database import get_db
 from app.models import Contest
-from app.schemas.contest import ContestCreate, ContestListItem, ContestRead
+from app.schemas.contest import (
+    ContestCreate,
+    ContestListItem,
+    ContestRead,
+    ContestUpdate,
+)
 from app.schemas.contest_standings import ContestStandings, StandingsEntry
 from app.time_utils import business_today
 
@@ -61,6 +66,48 @@ def create_contest(payload: ContestCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(contest)
     return contest
+
+
+@router.patch("/{contest_id}", response_model=ContestRead)
+def update_contest(
+    contest_id: int,
+    payload: ContestUpdate,
+    db: Session = Depends(get_db),
+):
+    contest = db.query(Contest).filter(Contest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Contest {contest_id} not found",
+        )
+
+    data = payload.model_dump(exclude_unset=True)
+    new_start = data.get("start_date", contest.start_date)
+    new_end = data.get("end_date", contest.end_date)
+    if new_end < new_start:
+        raise HTTPException(
+            status_code=422,
+            detail="end_date must be on or after start_date",
+        )
+
+    for field, value in data.items():
+        setattr(contest, field, value)
+    db.commit()
+    db.refresh(contest)
+    return contest
+
+
+@router.delete("/{contest_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_contest(contest_id: int, db: Session = Depends(get_db)):
+    contest = db.query(Contest).filter(Contest.id == contest_id).first()
+    if not contest:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Contest {contest_id} not found",
+        )
+    db.delete(contest)
+    db.commit()
+    return None
 
 
 @router.get("/{contest_id}/standings", response_model=ContestStandings)

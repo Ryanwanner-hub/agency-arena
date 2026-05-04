@@ -14,6 +14,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
+  // 204 No Content (e.g. DELETE) has an empty body — don't try to parse.
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -56,7 +58,7 @@ export type ActivityFeedItem = Activity & {
   agent: Agent;
 };
 
-export type ContestType = "daily" | "weekly" | "custom";
+export type ContestType = "daily" | "weekly" | "monthly" | "custom";
 export type ContestMetric =
   | "quotes"
   | "policies"

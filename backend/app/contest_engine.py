@@ -10,6 +10,7 @@ Single source of truth for:
 
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Dict, List, Optional
@@ -204,6 +205,10 @@ def auto_renew_contests(db: Session, today: date) -> int:
         elif template.type == "weekly":
             new_start = today - timedelta(days=today.weekday())
             new_end = new_start + timedelta(days=6)
+        elif template.type == "monthly":
+            new_start = today.replace(day=1)
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            new_end = today.replace(day=last_day)
         else:
             # Don't auto-renew custom-cadence contests.
             continue

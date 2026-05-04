@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   api,
   type Contest,
+  type ContestListItem,
   type ContestMetric,
   type ContestType,
 } from "@/lib/api";
@@ -53,36 +54,73 @@ function thisWeekDates(): { start: string; end: string } {
   };
 }
 
+function thisMonthDates(): { start: string; end: string } {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: localDateKey(first),
+    end: localDateKey(last),
+  };
+}
+
+function rangeForType(t: ContestType): { start: string; end: string } {
+  if (t === "daily") {
+    const today = todayUtcISO();
+    return { start: today, end: today };
+  }
+  if (t === "monthly") return thisMonthDates();
+  return thisWeekDates();
+}
+
 export function CreateContestModal({
+  editing,
   onCreated,
   onClose,
 }: {
+  /** When set, the modal switches to edit mode: prefilled fields, button
+   * says "Save changes", PATCH instead of POST. Falsy = create. */
+  editing?: ContestListItem | null;
   onCreated: (contest: Contest) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [type, setType] = useState<ContestType>("weekly");
-  const [metric, setMetric] = useState<ContestMetric>("policies");
-  const [autoRenew, setAutoRenew] = useState(false);
+  const isEdit = !!editing;
+  const [name, setName] = useState(editing?.name ?? "");
+  const [type, setType] = useState<ContestType>(
+    (editing?.type as ContestType) ?? "weekly",
+  );
+  const [metric, setMetric] = useState<ContestMetric>(
+    (editing?.metric as ContestMetric) ?? "policies",
+  );
+  const [autoRenew, setAutoRenew] = useState(editing?.auto_renew ?? false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const dates = useMemo(() => {
-    if (type === "daily") {
-      const today = todayUtcISO();
-      return { start: today, end: today };
-    }
-    return thisWeekDates();
-  }, [type]);
+  // Track whether the user has manually changed the dates so we don't
+  // overwrite them when toggling cadence. In edit mode we always start
+  // with the saved dates.
+  const [touchedDates, setTouchedDates] = useState(isEdit);
 
-  const [startDate, setStartDate] = useState(dates.start);
-  const [endDate, setEndDate] = useState(dates.end);
+  const initialRange = useMemo(
+    () =>
+      isEdit
+        ? { start: editing.start_date, end: editing.end_date }
+        : rangeForType(type),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
-  // Reset dates when type changes
+  const [startDate, setStartDate] = useState(initialRange.start);
+  const [endDate, setEndDate] = useState(initialRange.end);
+
+  // Snap dates to the cadence default when the user picks a different
+  // type — but only if they haven't manually edited the inputs yet.
   useEffect(() => {
-    setStartDate(dates.start);
-    setEndDate(dates.end);
-  }, [dates.start, dates.end]);
+    if (touchedDates) return;
+    const r = rangeForType(type);
+    setStartDate(r.start);
+    setEndDate(r.end);
+  }, [type, touchedDates]);
 
   // Close on Esc
   useEffect(() => {
@@ -97,21 +135,27 @@ export function CreateContestModal({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    const body = {
+      name: name.trim(),
+      type,
+      metric,
+      start_date: startDate,
+      end_date: endDate,
+      auto_renew: autoRenew,
+    };
     try {
-      const created = await api<Contest>("/contests", {
-        method: "POST",
-        body: JSON.stringify({
-          name: name.trim(),
-          type,
-          metric,
-          start_date: startDate,
-          end_date: endDate,
-          auto_renew: autoRenew,
-        }),
-      });
-      onCreated(created);
+      const result = isEdit
+        ? await api<Contest>(`/contests/${editing!.id}`, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+          })
+        : await api<Contest>("/contests", {
+            method: "POST",
+            body: JSON.stringify(body),
+          });
+      onCreated(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create");
+      setError(e instanceof Error ? e.message : "Failed to save");
       setSubmitting(false);
     }
   }
@@ -133,7 +177,9 @@ export function CreateContestModal({
       >
         <header className="flex items-start justify-between border-b px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold">New contest</h2>
+            <h2 className="text-lg font-semibold">
+              {isEdit ? "Edit contest" : "New contest"}
+            </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Pick a metric and a window — standings update automatically.
             </p>
@@ -162,7 +208,7 @@ export function CreateContestModal({
 
           <Field label="Cadence">
             <div className="flex gap-2">
-              {(["daily", "weekly"] as const).map((t) => (
+              {(["daily", "weekly", "monthly"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -208,7 +254,10 @@ export function CreateContestModal({
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setTouchedDates(true);
+                }}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </Field>
@@ -216,7 +265,10 @@ export function CreateContestModal({
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setTouchedDates(true);
+                }}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </Field>
@@ -233,7 +285,15 @@ export function CreateContestModal({
               <p className="font-medium">Auto-renew</p>
               <p className="text-xs text-muted-foreground">
                 When this contest ends, automatically start a new one for the
-                next {type === "daily" ? "day" : "week"}.
+                next{" "}
+                {type === "daily"
+                  ? "day"
+                  : type === "monthly"
+                    ? "month"
+                    : type === "custom"
+                      ? "window"
+                      : "week"}
+                .
               </p>
             </div>
           </label>
@@ -257,7 +317,13 @@ export function CreateContestModal({
               disabled={!canSubmit}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Creating…" : "Create contest"}
+              {submitting
+                ? isEdit
+                  ? "Saving…"
+                  : "Creating…"
+                : isEdit
+                  ? "Save changes"
+                  : "Create contest"}
             </button>
           </div>
         </form>
