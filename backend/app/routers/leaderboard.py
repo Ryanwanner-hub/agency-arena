@@ -65,6 +65,8 @@ def get_leaderboard(
             func.coalesce(func.sum(DailyScore.policies), 0).label("policies"),
             func.coalesce(func.sum(DailyScore.referrals), 0).label("referrals"),
             func.coalesce(func.sum(DailyScore.followups), 0).label("followups"),
+            func.coalesce(func.sum(DailyScore.bundles), 0).label("bundles"),
+            func.coalesce(func.sum(DailyScore.reviews), 0).label("reviews"),
         )
         .outerjoin(
             DailyScore,
@@ -114,6 +116,8 @@ def get_leaderboard(
                 policies=row.policies,
                 referrals=row.referrals,
                 followups=row.followups,
+                bundles=row.bundles,
+                reviews=row.reviews,
                 close_rate=close_rate(row.policies, row.quotes),
                 trend_delta=delta,
                 trend_pct=pct,

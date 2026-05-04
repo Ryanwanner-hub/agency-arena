@@ -118,6 +118,8 @@ export type LeaderboardEntry = {
   policies: number;
   referrals: number;
   followups: number;
+  bundles: number;
+  reviews: number;
   close_rate: number;
   /** Signed change in points vs the prior equal-length window. */
   trend_delta: number;

@@ -116,9 +116,9 @@ function SpotlightCard({
       </div>
 
       <div className="grid w-full grid-cols-3 gap-2 border-t border-border/60 pt-4 text-center">
-        <Stat label="quotes" value={entry.quotes} />
         <Stat label="policies" value={entry.policies} />
         <Stat label="referrals" value={entry.referrals} />
+        <Stat label="reviews" value={entry.reviews} />
       </div>
 
       {delta !== undefined && delta !== 0 && (
@@ -170,8 +170,9 @@ function CompactRow({
         </p>
       </div>
       <div className="flex items-baseline gap-6 text-right">
-        <Stat label="q" value={entry.quotes} />
         <Stat label="pol" value={entry.policies} />
+        <Stat label="ref" value={entry.referrals} />
+        <Stat label="rev" value={entry.reviews} />
         <div>
           <p className="font-mono text-4xl font-bold tabular-nums">
             {entry.total_points}

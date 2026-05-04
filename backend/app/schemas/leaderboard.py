@@ -20,6 +20,8 @@ class LeaderboardEntry(BaseModel):
     policies: int
     referrals: int
     followups: int
+    bundles: int = 0
+    reviews: int = 0
     close_rate: float
     # Momentum fields:
     # trend_delta = total_points (current window) - total_points (prior equal window)

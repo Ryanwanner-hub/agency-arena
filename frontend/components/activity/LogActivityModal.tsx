@@ -63,14 +63,22 @@ export function LogActivityModal({
   const [activityType, setActivityType] = useState<string>("policy_bound");
   const [premium, setPremium] = useState<string>("");
   const [source, setSource] = useState<string>("");
+  const [bundleSize, setBundleSize] = useState<number>(2);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const showsPremium = PREMIUM_TYPES.has(activityType);
+  const isBundle = activityType === "multi_policy_bonus";
 
   useEffect(() => {
     if (!showsPremium) setPremium("");
   }, [showsPremium]);
+
+  // Reset to 2 whenever the user steps away from a bundle so the next
+  // multi-policy log doesn't inherit a stale 5.
+  useEffect(() => {
+    if (!isBundle) setBundleSize(2);
+  }, [isBundle]);
 
   // Close on Esc
   useEffect(() => {
@@ -89,21 +97,55 @@ export function LogActivityModal({
     }
     setSubmitting(true);
     setError(null);
-    const body: Record<string, unknown> = {
-      agent_id: agentId,
-      activity_type: activityType,
-    };
-    if (showsPremium && premium.trim()) {
+
+    const premiumValue = (() => {
+      if (!showsPremium || !premium.trim()) return null;
       const n = Number(premium);
-      if (Number.isFinite(n) && n >= 0) body.premium = n;
-    }
-    if (source.trim()) body.source = source.trim();
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    })();
+    const trimmedSource = source.trim() || null;
+
     try {
-      const created = await api<Activity>("/activity", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      onLogged(created);
+      let last: Activity | null = null;
+
+      if (isBundle) {
+        // A bundle of N policies = N policy_bound events (one per policy
+        // sold) + 1 multi_policy_bonus (the bundle bonus). Premium goes
+        // on the bonus event so the activity feed shows one $-tagged
+        // line for the deal instead of N split entries.
+        for (let i = 0; i < bundleSize; i++) {
+          last = await api<Activity>("/activity", {
+            method: "POST",
+            body: JSON.stringify({
+              agent_id: agentId,
+              activity_type: "policy_bound",
+              ...(trimmedSource ? { source: trimmedSource } : {}),
+            }),
+          });
+        }
+        last = await api<Activity>("/activity", {
+          method: "POST",
+          body: JSON.stringify({
+            agent_id: agentId,
+            activity_type: "multi_policy_bonus",
+            ...(premiumValue !== null ? { premium: premiumValue } : {}),
+            ...(trimmedSource ? { source: trimmedSource } : {}),
+          }),
+        });
+      } else {
+        const body: Record<string, unknown> = {
+          agent_id: agentId,
+          activity_type: activityType,
+        };
+        if (premiumValue !== null) body.premium = premiumValue;
+        if (trimmedSource) body.source = trimmedSource;
+        last = await api<Activity>("/activity", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      }
+
+      if (last) onLogged(last);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to log activity");
       setSubmitting(false);
@@ -199,8 +241,41 @@ export function LogActivityModal({
             </div>
           </Field>
 
+          {isBundle && (
+            <Field label="How many policies in the bundle?" required>
+              <div className="flex flex-wrap gap-2">
+                {[2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setBundleSize(n)}
+                    className={cn(
+                      "h-10 w-12 rounded-md border text-sm font-semibold transition-colors",
+                      bundleSize === n
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Logs {bundleSize} policy_bound events plus 1 bundle bonus —
+                so the leaderboard, the &ldquo;Most policies&rdquo; contest, and
+                the &ldquo;Most bundles&rdquo; contest all stay in sync.
+              </p>
+            </Field>
+          )}
+
           {showsPremium && (
-            <Field label="Premium ($) — optional">
+            <Field
+              label={
+                isBundle
+                  ? "Total premium ($) — optional"
+                  : "Premium ($) — optional"
+              }
+            >
               <div className="relative">
                 <DollarSign className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
