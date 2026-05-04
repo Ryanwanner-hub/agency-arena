@@ -1,9 +1,11 @@
 "use client";
 
-import { ChevronRight, Search, UserPlus } from "lucide-react";
+import { ChevronRight, Plus, Search, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { CreateAgentModal } from "@/components/agents/CreateAgentModal";
 import { Avatar } from "@/components/avatar/Avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -14,18 +16,21 @@ import {
 import { cn } from "@/lib/utils";
 
 export function AgentsClient({
-  agents,
+  agents: initialAgents,
   profiles,
 }: {
   agents: Agent[];
   profiles: AgentProfile[];
 }) {
+  const router = useRouter();
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const profileById = useMemo(
     () => new Map(profiles.map((p) => [p.agent.id, p])),
     [profiles],
   );
 
   const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -50,20 +55,33 @@ export function AgentsClient({
             and titles.
           </p>
         </div>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search agents…"
-            className="rounded-md border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search agents…"
+              className="rounded-md border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Add agent
+          </button>
         </div>
       </header>
 
       {filtered.length === 0 ? (
-        <EmptyState hasAgents={agents.length > 0} />
+        <EmptyState
+          hasAgents={agents.length > 0}
+          onAdd={() => setCreating(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((agent) => (
@@ -74,6 +92,20 @@ export function AgentsClient({
             />
           ))}
         </div>
+      )}
+
+      {creating && (
+        <CreateAgentModal
+          onClose={() => setCreating(false)}
+          onCreated={(agent) => {
+            // Optimistically add the new agent so the grid updates
+            // immediately; the next dashboard poll picks up real stats.
+            setAgents((prev) => [...prev, agent]);
+            setCreating(false);
+            // Refresh server-rendered profile data on next nav.
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );
@@ -160,7 +192,13 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function EmptyState({ hasAgents }: { hasAgents: boolean }) {
+function EmptyState({
+  hasAgents,
+  onAdd,
+}: {
+  hasAgents: boolean;
+  onAdd: () => void;
+}) {
   return (
     <div className="rounded-lg border border-dashed bg-muted/20 px-8 py-16 text-center">
       <UserPlus className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
@@ -170,8 +208,18 @@ function EmptyState({ hasAgents }: { hasAgents: boolean }) {
       <p className="mt-1 text-sm text-muted-foreground">
         {hasAgents
           ? "Try a different search term."
-          : "Add an agent from the API or seed script to populate the roster."}
+          : "Add your first team member to start the leaderboard."}
       </p>
+      {!hasAgents && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          Add your first agent
+        </button>
+      )}
     </div>
   );
 }

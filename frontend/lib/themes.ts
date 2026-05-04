@@ -79,6 +79,8 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
       "--input": "214 32% 91%",
       "--ring": "221 83% 53%",
       "--radius": "0.5rem",
+      "--destructive": "0 72% 51%",
+      "--destructive-foreground": "0 0% 98%",
       "--card-glow": "0 0 0 transparent",
       "--body-bg": "hsl(var(--background))",
       "--leaderboard-row-hover": "hsl(var(--muted) / 0.5)",
@@ -113,6 +115,8 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
       "--input": "240 30% 18%",
       "--ring": "320 95% 60%",
       "--radius": "0.5rem",
+      "--destructive": "350 95% 60%",
+      "--destructive-foreground": "0 0% 98%",
       "--card-glow": "0 0 22px hsl(320 95% 60% / 0.18)",
       "--body-bg":
         "radial-gradient(circle at 20% 0%, hsl(320 80% 14%) 0%, hsl(240 35% 6%) 55%)",
@@ -148,6 +152,8 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
       "--input": "0 0% 85%",
       "--ring": "0 84% 50%",
       "--radius": "0.25rem",
+      "--destructive": "0 84% 50%",
+      "--destructive-foreground": "0 0% 98%",
       "--card-glow": "0 4px 0 hsl(0 0% 8% / 0.08)",
       "--body-bg": "hsl(var(--background))",
       "--leaderboard-row-hover": "hsl(0 84% 50% / 0.05)",
@@ -182,6 +188,8 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
       "--input": "145 35% 20%",
       "--ring": "45 90% 55%",
       "--radius": "0.5rem",
+      "--destructive": "0 75% 55%",
+      "--destructive-foreground": "45 70% 92%",
       "--card-glow":
         "0 0 0 1px hsl(45 90% 55% / 0.25), 0 8px 24px hsl(145 60% 4% / 0.5)",
       "--body-bg":

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   RotateCcw,
   Tv,
   Volume2,
@@ -13,6 +14,7 @@ import { useManagerSettings } from "@/components/settings/ManagerSettingsProvide
 import { useSound } from "@/components/sound/SoundProvider";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import {
   ACTIVITY_LABEL,
   ACTIVITY_TYPES,
@@ -49,6 +51,7 @@ export function SettingsClient() {
           <CelebrationSection />
           <PointSection />
           <DisplaySection />
+          <DangerSection />
         </>
       )}
     </div>
@@ -403,6 +406,108 @@ function DisplaySection() {
           checked={d.showRankMovement}
           onChange={(v) => setDisplay("showRankMovement", v)}
         />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// 6. Office data (reset)
+// ────────────────────────────────────────────────────────────────────────
+
+const RESET_PHRASE = "RESET";
+
+function DangerSection() {
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ deleted: Record<string, number> } | null>(
+    null,
+  );
+
+  const armed = confirm.trim().toUpperCase() === RESET_PHRASE;
+
+  async function reset() {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api<{ deleted: Record<string, number> }>(
+        "/admin/reset",
+        { method: "POST" },
+      );
+      setDone(result);
+      setConfirm("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to reset");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="border-destructive/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          Reset office data
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Wipes every agent, activity, score, badge award, contest, and
+          referral partner. Theme/sound preferences and the badge catalog
+          stay. Use this once after the demo so you can plug in your real
+          team.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Tip: also set <code className="rounded bg-muted px-1">SEED_ON_STARTUP=false</code>{" "}
+          on your Render service so demo data doesn't reappear after a
+          cold-start.
+        </p>
+
+        {done ? (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+            <p className="font-medium text-emerald-700 dark:text-emerald-400">
+              Office wiped clean.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Deleted —{" "}
+              {Object.entries(done.deleted)
+                .filter(([, n]) => n > 0)
+                .map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`)
+                .join(", ") || "nothing (already empty)"}
+              . Add your team from the Agents page.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder={`Type ${RESET_PHRASE} to enable`}
+              className="flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:border-destructive focus:outline-none focus:ring-1 focus:ring-destructive/40"
+            />
+            <button
+              type="button"
+              onClick={reset}
+              disabled={!armed || busy}
+              className={cn(
+                "rounded-md px-4 py-2 text-sm font-medium transition-colors",
+                armed && !busy
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {busy ? "Resetting…" : "Reset everything"}
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+            {error}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

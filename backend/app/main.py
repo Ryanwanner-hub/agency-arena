@@ -22,6 +22,7 @@ from app.models import (  # noqa: F401  (register models with Base.metadata)
 )
 from app.routers import (
     activity,
+    admin,
     agents,
     contests,
     health,
@@ -137,3 +138,4 @@ app.include_router(leaderboard.router)
 app.include_router(referral_partners.router)
 app.include_router(reports.router)
 app.include_router(settings_router.router)
+app.include_router(admin.router)
