@@ -13,6 +13,7 @@ class SettingsRead(BaseModel):
     theme: Theme
     current_agent_id: int
     point_overrides: dict[str, int] = {}
+    daily_policy_goal: int = 6
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -22,6 +23,18 @@ class SettingsUpdate(BaseModel):
     theme: Optional[Theme] = None
     current_agent_id: Optional[int] = None
     point_overrides: Optional[dict[str, int]] = None
+    daily_policy_goal: Optional[int] = None
+
+    @field_validator("daily_policy_goal")
+    @classmethod
+    def validate_daily_policy_goal(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("daily_policy_goal must be at least 1")
+        if value > 1000:
+            raise ValueError("daily_policy_goal must be 1000 or fewer")
+        return value
 
     @field_validator("point_overrides")
     @classmethod

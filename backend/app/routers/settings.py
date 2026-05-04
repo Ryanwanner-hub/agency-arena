@@ -18,6 +18,7 @@ def _to_read(settings) -> SettingsRead:
         theme=settings.theme,
         current_agent_id=settings.current_agent_id,
         point_overrides=normalize_point_overrides(settings.point_overrides),
+        daily_policy_goal=settings.daily_policy_goal,
         updated_at=settings.updated_at,
     )
 

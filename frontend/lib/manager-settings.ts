@@ -47,6 +47,10 @@ export type ManagerSettings = {
   /** Sparse override map. Missing keys fall back to ``DEFAULT_POINTS``. */
   pointOverrides: Record<string, number>;
   display: DisplayToggles;
+  /** Team-wide daily policy target — drives the /tv office-goal bar
+   * and the team-goal panel. Synced server-side so every device sees
+   * the same number. */
+  dailyPolicyGoal: number;
 };
 
 export const ACTIVITY_TYPES = [
@@ -159,6 +163,7 @@ export const DEFAULT_SETTINGS: ManagerSettings = {
     showReferrals: true,
     showRankMovement: true,
   },
+  dailyPolicyGoal: 6,
 };
 
 export const STORAGE_KEY = "agency-arena.manager-settings";

@@ -1,20 +1,21 @@
 "use client";
 
+import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import type { LeaderboardResponse } from "@/lib/api";
 import { displayName } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const TARGET_POLICIES = 10;
-
 /** Full-screen team-goal hero panel. Same data as the OfficeGoal strip
- * but presented for "look across the room" reading. */
+ * but presented for "look across the room" reading. Target comes from
+ * the manager settings so it can be tuned without a redeploy. */
 export function TeamGoalPanel({
   leaderboard,
 }: {
   leaderboard: LeaderboardResponse;
 }) {
+  const { settings } = useManagerSettings();
   const bound = leaderboard.entries.reduce((sum, e) => sum + e.policies, 0);
-  const target = TARGET_POLICIES;
+  const target = settings.dailyPolicyGoal;
   const pct = Math.min(100, Math.round((bound / target) * 100));
   const hit = bound >= target;
 

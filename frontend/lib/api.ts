@@ -184,6 +184,7 @@ export type Theme = "corporate" | "neon" | "sports" | "casino";
 export type Settings = {
   theme: Theme;
   current_agent_id: number;
+  daily_policy_goal: number;
   point_overrides: Record<string, number>;
   updated_at: string;
 };

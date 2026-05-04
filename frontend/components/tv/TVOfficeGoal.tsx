@@ -1,19 +1,21 @@
 "use client";
 
+import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import type { LeaderboardResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-/** Today's office goal — for the demo this is "10 policies bound today".
- * Computes progress from the daily leaderboard's policies sum. */
-const TARGET_POLICIES = 10;
+/** Today's office goal — target comes from manager settings (synced
+ * server-side so every device sees the same number). Progress is the
+ * sum of policies bound across the daily leaderboard. */
 
 export function TVOfficeGoal({
   leaderboard,
 }: {
   leaderboard: LeaderboardResponse;
 }) {
+  const { settings } = useManagerSettings();
   const bound = leaderboard.entries.reduce((sum, e) => sum + e.policies, 0);
-  const target = TARGET_POLICIES;
+  const target = settings.dailyPolicyGoal;
   const pct = Math.min(100, Math.round((bound / target) * 100));
   const hit = bound >= target;
 

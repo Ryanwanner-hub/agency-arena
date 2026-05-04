@@ -37,6 +37,9 @@ type Ctx = {
   setPointOverride: (activityType: string, points: number | null) => void;
   /** Drop all per-activity overrides (returns to backend defaults). */
   resetPoints: () => void;
+  /** Set the team-wide daily policy goal. Persists to localStorage and
+   * best-effort syncs to the server so every device sees it. */
+  setDailyPolicyGoal: (goal: number) => void;
   /** Reset every section to defaults. */
   reset: () => void;
 };
@@ -66,6 +69,17 @@ export function ManagerSettingsProvider({
     });
   }, []);
 
+  const syncDailyPolicyGoal = useCallback((goal: number) => {
+    fetch(`${API_BASE}/settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ daily_policy_goal: goal }),
+      keepalive: true,
+    }).catch(() => {
+      // Best-effort; the value still wrote to localStorage.
+    });
+  }, []);
+
   // Hydrate from storage on mount. Defaults stay in place during SSR so
   // the first render matches between server and client.
   useEffect(() => {
@@ -85,6 +99,10 @@ export function ManagerSettingsProvider({
         const merged = {
           ...local,
           pointOverrides: { ...(server.point_overrides ?? {}) },
+          dailyPolicyGoal:
+            typeof server.daily_policy_goal === "number"
+              ? server.daily_policy_goal
+              : local.dailyPolicyGoal,
         };
         repo.save(merged);
         setSettings(merged);
@@ -166,6 +184,19 @@ export function ManagerSettingsProvider({
     });
   }, [syncPointOverrides]);
 
+  const setDailyPolicyGoal = useCallback(
+    (goal: number) => {
+      const clamped = Math.max(1, Math.min(1000, Math.round(goal) || 1));
+      setSettings((prev) => {
+        const next: ManagerSettings = { ...prev, dailyPolicyGoal: clamped };
+        repo.save(next);
+        syncDailyPolicyGoal(clamped);
+        return next;
+      });
+    },
+    [syncDailyPolicyGoal],
+  );
+
   const reset = useCallback(() => {
     persist(DEFAULT_SETTINGS);
   }, [persist]);
@@ -179,6 +210,7 @@ export function ManagerSettingsProvider({
         setDisplay,
         setPointOverride,
         resetPoints,
+        setDailyPolicyGoal,
         reset,
       }}
     >

@@ -50,6 +50,7 @@ export function SettingsClient() {
           <SoundSection />
           <CelebrationSection />
           <PointSection />
+          <OfficeSection />
           <DisplaySection />
           <DangerSection />
         </>
@@ -369,7 +370,78 @@ function PointSection() {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// 5. Display Settings
+// 5. Office goals
+// ────────────────────────────────────────────────────────────────────────
+
+function OfficeSection() {
+  const { settings, setDailyPolicyGoal } = useManagerSettings();
+  const [draft, setDraft] = useState<string>(
+    String(settings.dailyPolicyGoal),
+  );
+
+  // Keep the input synced if the value comes back from the server after
+  // the page has already mounted.
+  useEffect(() => {
+    setDraft(String(settings.dailyPolicyGoal));
+  }, [settings.dailyPolicyGoal]);
+
+  const parsed = Number(draft);
+  const valid = Number.isFinite(parsed) && parsed >= 1 && parsed <= 1000;
+  const dirty = valid && parsed !== settings.dailyPolicyGoal;
+
+  function commit() {
+    if (!valid || !dirty) return;
+    setDailyPolicyGoal(parsed);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Office goals</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Field
+          label="Daily policy goal"
+          help="Drives the office-goal bar and team-goal panel on the /tv board. Synced across all devices."
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              step={1}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commit();
+                }
+              }}
+              className="w-24 rounded-md border bg-background px-3 py-2 text-right font-mono text-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <span className="text-sm text-muted-foreground">
+              policies bound today
+            </span>
+            {dirty && (
+              <button
+                type="button"
+                onClick={commit}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Save
+              </button>
+            )}
+          </div>
+        </Field>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// 6. Display Settings
 // ────────────────────────────────────────────────────────────────────────
 
 function DisplaySection() {

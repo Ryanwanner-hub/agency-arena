@@ -245,6 +245,15 @@ class Settings(Base):
         default="{}",
         server_default="{}",
     )
+    # The daily team goal shown on /tv (office-goal bar + team-goal panel).
+    # 6 is a reasonable default for a 5-person office; managers tune it
+    # from the Settings page.
+    daily_policy_goal = Column(
+        Integer,
+        nullable=False,
+        default=6,
+        server_default="6",
+    )
     updated_at = Column(
         DateTime,
         nullable=False,

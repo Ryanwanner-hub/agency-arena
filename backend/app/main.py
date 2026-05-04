@@ -77,6 +77,7 @@ _PENDING_COLUMNS: dict[str, dict[str, str]] = {
     },
     "settings": {
         "point_overrides": "TEXT NOT NULL DEFAULT '{}'",
+        "daily_policy_goal": "INTEGER NOT NULL DEFAULT 6",
     },
     "daily_scores": {
         "bundles": "INTEGER NOT NULL DEFAULT 0",
