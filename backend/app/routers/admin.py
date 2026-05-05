@@ -5,7 +5,10 @@ manager can't fat-finger it. Lock down with reverse-proxy auth or an
 ``ADMIN_TOKEN`` check if the deployment is reachable beyond the office.
 """
 
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -17,6 +20,8 @@ from app.models import (
     DailyScore,
     ReferralPartner,
 )
+from app.scoring import recalculate_daily_score
+from app.time_utils import business_day_from_utc_naive
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -46,3 +51,40 @@ def reset_office_data(db: Session = Depends(get_db)) -> dict:
     }
     db.commit()
     return {"deleted": counts}
+
+
+@router.post("/recompute-scores")
+def recompute_scores(db: Session = Depends(get_db)) -> dict:
+    """Rebuild every DailyScore row from the underlying Activity log.
+
+    Run this after changing scoring rules (e.g. when ``cross_sell_sold``
+    started counting as a policy) so the leaderboard, monthly race, and
+    contests reflect the new rules retroactively. Idempotent — safe to
+    re-run.
+    """
+    bounds = (
+        db.query(func.min(Activity.created_at), func.max(Activity.created_at))
+        .one()
+    )
+    earliest, latest = bounds
+    if earliest is None or latest is None:
+        return {"recomputed": 0, "message": "no activity to recompute"}
+
+    start_day = business_day_from_utc_naive(earliest)
+    end_day = business_day_from_utc_naive(latest)
+
+    agents = [a.id for a in db.query(Agent.id).all()]
+    total = 0
+    day = start_day
+    while day <= end_day:
+        for agent_id in agents:
+            recalculate_daily_score(db, agent_id, day)
+            total += 1
+        day = day + timedelta(days=1)
+    db.commit()
+    return {
+        "recomputed": total,
+        "start": start_day.isoformat(),
+        "end": end_day.isoformat(),
+        "agents": len(agents),
+    }

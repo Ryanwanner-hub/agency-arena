@@ -39,6 +39,22 @@ const TYPE_GROUPS: { label: string; types: string[] }[] = [
 
 const SOURCE_PRESETS = ["phone", "walk_in", "online", "referral", "email"];
 
+/** Plain-English explanation of what each activity type does to the
+ * leaderboard. Shown under the picker so the difference between
+ * "Multi-policy bonus" (the bundle) and "Cross-sell sold" (a single
+ * added policy on an existing customer) is unambiguous. */
+const TYPE_HELP: Record<string, string> = {
+  policy_bound: "Counts as +1 policy. Use for a single new policy bound.",
+  multi_policy_bonus:
+    "Logs a bundle (auto + home, auto + renters, etc.). Pick the bundle size below — each policy in the bundle counts toward the policies and bundles totals.",
+  cross_sell_sold:
+    "An existing customer added a new product. Counts as +1 policy and +1 bundle.",
+  referral_converted: "A referred lead closed. Counts as +1 referral.",
+  referral_received: "A new referred lead came in. Counts as +1 referral.",
+  review_received: "A 5-star customer review. Counts as +1 review.",
+  review_requested: "A review was requested from a customer.",
+};
+
 export function LogActivityModal({
   agents,
   defaultAgentId,
@@ -239,6 +255,15 @@ export function LogActivityModal({
                 </div>
               ))}
             </div>
+            {TYPE_HELP[activityType] && (
+              <p className="mt-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {ACTIVITY_LABEL[activityType as keyof typeof ACTIVITY_LABEL] ??
+                    activityType}
+                </span>{" "}
+                — {TYPE_HELP[activityType]}
+              </p>
+            )}
           </Field>
 
           {isBundle && (

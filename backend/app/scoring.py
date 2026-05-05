@@ -30,11 +30,17 @@ ACTIVITY_TYPES = tuple(POINTS_BY_ACTIVITY.keys())
 # (e.g. multi_policy_bonus, speed_to_contact) only contribute points and don't
 # map to a counter on DailyScore.
 QUOTE_TYPES = frozenset({"quote_completed"})
-POLICY_TYPES = frozenset({"policy_bound"})
+# Anything that lands a real bound policy on the books. ``policy_bound``
+# is the obvious case; ``cross_sell_sold`` is a cross-sell that adds a
+# new product to an existing customer — it's still a fresh policy and
+# should bump the agent's policies count + roll up to the leaderboard,
+# the monthly race, and the "Most policies" contest.
+POLICY_TYPES = frozenset({"policy_bound", "cross_sell_sold"})
 REFERRAL_TYPES = frozenset({"referral_received"})
 FOLLOWUP_TYPES = frozenset({"followup_completed"})
-# A "bundle" is anything that adds another policy to an existing customer:
-# multi-policy bind events and successful cross-sells both count.
+# A "bundle" is anything that ties two or more products together:
+# multi-policy binds (auto + home, auto + renters, etc.) and successful
+# cross-sells both count.
 BUNDLE_TYPES = frozenset({"multi_policy_bonus", "cross_sell_sold"})
 # 5-star reviews. ``review_received`` is the only review activity tracked
 # today; if star ratings are added later, restrict this set then.
