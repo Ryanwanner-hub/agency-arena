@@ -331,10 +331,31 @@
   animation: tv-rank-down-pulse 2.4s ease-out;
 }
 
+/* Subtle gallop on the leading runner so the screen never feels static
+   between sales. The leader card (gold-ringed) breathes; finishers get a
+   sharper pulse to celebrate crossing the line. */
+@keyframes tv-runner-leader-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.04); }
+}
+.tv-runner-leader {
+  animation: tv-runner-leader-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes tv-runner-finished-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(16 185 129 / 0.6); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 12px rgb(16 185 129 / 0); }
+}
+.tv-runner-finished {
+  animation: tv-runner-finished-pulse 1.4s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tv-panel-enter,
   .tv-rank-up,
-  .tv-rank-down {
+  .tv-rank-down,
+  .tv-runner-leader,
+  .tv-runner-finished {
     animation: none;
   }
 }

@@ -5,11 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Avatar } from "@/components/avatar/Avatar";
 import { useCelebrate } from "@/components/celebration/CelebrationProvider";
+import { HorseRacePanel } from "@/components/tv/HorseRacePanel";
 import { LeaderboardPanel } from "@/components/tv/LeaderboardPanel";
 import { TeamGoalPanel } from "@/components/tv/TeamGoalPanel";
 import { TVHeader, type TVPanelKey } from "@/components/tv/TVHeader";
 import { TVOfficeGoal } from "@/components/tv/TVOfficeGoal";
 import { TVTicker } from "@/components/tv/TVTicker";
+import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import {
   api,
   displayName,
@@ -21,8 +23,12 @@ import {
 import { formatDateOnly, localDateKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
+// Order matters: monthly_race lands right after today's leaderboard so
+// the eye flows from "what just happened today" to "how it shapes the
+// month-long race".
 const PANELS: TVPanelKey[] = [
   "leaderboard",
+  "monthly_race",
   "wins",
   "badges",
   "contests",
@@ -72,14 +78,16 @@ type AwardEntry = {
 
 type State = {
   leaderboard: LeaderboardResponse;
+  monthlyLeaderboard: LeaderboardResponse;
   profiles: AgentProfile[];
   contests: ContestListItem[];
 };
 
 async function fetchAll(): Promise<State> {
-  const leaderboard = await api<LeaderboardResponse>(
-    "/leaderboard?period=daily",
-  );
+  const [leaderboard, monthlyLeaderboard] = await Promise.all([
+    api<LeaderboardResponse>("/leaderboard?period=daily"),
+    api<LeaderboardResponse>("/leaderboard?period=monthly"),
+  ]);
   const [profiles, contests] = await Promise.all([
     Promise.all(
       leaderboard.entries.map((e) =>
@@ -88,10 +96,11 @@ async function fetchAll(): Promise<State> {
     ),
     api<ContestListItem[]>("/contests"),
   ]);
-  return { leaderboard, profiles, contests };
+  return { leaderboard, monthlyLeaderboard, profiles, contests };
 }
 
 export default function TVPage() {
+  const { settings: managerSettings } = useManagerSettings();
   const [state, setState] = useState<State | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<TVPanelKey>("leaderboard");
@@ -262,6 +271,12 @@ export default function TVPage() {
               <LeaderboardPanel
                 entries={state.leaderboard.entries}
                 rankDeltas={rankDeltas}
+              />
+            )}
+            {panel === "monthly_race" && (
+              <HorseRacePanel
+                entries={state.monthlyLeaderboard.entries}
+                dailyPolicyGoal={managerSettings.dailyPolicyGoal}
               />
             )}
             {panel === "wins" && <WinsPanel wins={wins} />}

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export type TVPanelKey =
   | "leaderboard"
+  | "monthly_race"
   | "wins"
   | "badges"
   | "contests"
@@ -16,6 +17,7 @@ export type TVPanelKey =
 
 const PANEL_TITLE: Record<TVPanelKey, string> = {
   leaderboard: "Today's leaderboard",
+  monthly_race: "Monthly sales race 🏁",
   wins: "Recent wins",
   badges: "Badge achievements",
   contests: "Active contests",
