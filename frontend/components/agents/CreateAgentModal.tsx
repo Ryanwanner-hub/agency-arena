@@ -52,6 +52,7 @@ export function CreateAgentModal({
   const [title, setTitle] = useState("");
   const [preset, setPreset] = useState<string | null>("trophy");
   const [color, setColor] = useState<string | null>(null);
+  const [weeklyGoal, setWeeklyGoal] = useState<string>("10000");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +69,9 @@ export function CreateAgentModal({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    const parsedGoal = Number(weeklyGoal);
+    const goalValue =
+      Number.isFinite(parsedGoal) && parsedGoal >= 0 ? parsedGoal : 10000;
     try {
       const created = await api<Agent>("/agents", {
         method: "POST",
@@ -78,6 +82,7 @@ export function CreateAgentModal({
           title: title.trim() || null,
           avatar_preset: preset,
           avatar_color: color,
+          weekly_premium_goal: goalValue,
           active: true,
         }),
       });
@@ -167,6 +172,38 @@ export function CreateAgentModal({
                   {r.label}
                 </button>
               ))}
+            </div>
+          </Field>
+
+          <Field label="Weekly premium goal ($)">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">$</span>
+              <input
+                type="number"
+                min={0}
+                step={500}
+                value={weeklyGoal}
+                onChange={(e) => setWeeklyGoal(e.target.value)}
+                placeholder="10000"
+                className="w-32 rounded-md border bg-background px-3 py-2 text-right font-mono text-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {[6000, 10000, 15000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setWeeklyGoal(String(amt))}
+                    className={cn(
+                      "rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
+                      Number(weeklyGoal) === amt
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    ${(amt / 1000).toFixed(0)}k
+                  </button>
+                ))}
+              </div>
             </div>
           </Field>
 

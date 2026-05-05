@@ -38,3 +38,22 @@ class WeeklyReport(BaseModel):
     agents: List[AgentBreakdown]
     top_performers: Dict[str, Optional[TopPerformer]]
     activity_by_type: Dict[str, int]
+
+
+class WeeklyPremiumAgent(BaseModel):
+    agent_id: int
+    name: str
+    nickname: Optional[str] = None
+    avatar_url: Optional[str] = None
+    avatar_preset: Optional[str] = None
+    goal: int
+    total: float
+    # Mon → Sun premium, indexed 0..6 to match Python's weekday().
+    # Front-end labels as M/T/W/T/F/S/S in order.
+    days: List[float]
+
+
+class WeeklyPremiumReport(BaseModel):
+    week_start: date
+    week_end: date
+    agents: List[WeeklyPremiumAgent]

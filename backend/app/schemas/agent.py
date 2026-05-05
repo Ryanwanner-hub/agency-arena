@@ -15,7 +15,17 @@ class AgentBase(BaseModel):
     nickname: Optional[str] = None
     title: Optional[str] = None
     active: bool = True
+    weekly_premium_goal: int = 10000
     start_date: Optional[date] = None
+
+    @field_validator("weekly_premium_goal")
+    @classmethod
+    def validate_goal(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("weekly_premium_goal must be >= 0")
+        if value > 1_000_000:
+            raise ValueError("weekly_premium_goal must be <= 1,000,000")
+        return value
 
     @field_validator("name", "role")
     @classmethod
@@ -57,6 +67,18 @@ class AgentUpdate(BaseModel):
     nickname: Optional[str] = None
     title: Optional[str] = None
     active: Optional[bool] = None
+    weekly_premium_goal: Optional[int] = None
+
+    @field_validator("weekly_premium_goal")
+    @classmethod
+    def validate_goal_optional(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 0:
+            raise ValueError("weekly_premium_goal must be >= 0")
+        if value > 1_000_000:
+            raise ValueError("weekly_premium_goal must be <= 1,000,000")
+        return value
 
     @field_validator("name", "role")
     @classmethod

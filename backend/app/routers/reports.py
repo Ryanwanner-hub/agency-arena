@@ -11,10 +11,16 @@ from app.schemas.report import (
     AgentBreakdown,
     TeamTotals,
     TopPerformer,
+    WeeklyPremiumAgent,
+    WeeklyPremiumReport,
     WeeklyReport,
 )
 from app.scoring import close_rate
-from app.time_utils import business_today, business_window_bounds
+from app.time_utils import (
+    business_day_from_utc_naive,
+    business_today,
+    business_window_bounds,
+)
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -127,3 +133,62 @@ def get_weekly_report(
         top_performers=top_performers,
         activity_by_type=activity_by_type,
     )
+
+
+@router.get("/weekly-premium", response_model=WeeklyPremiumReport)
+def get_weekly_premium(
+    week_of: Optional[date] = Query(
+        None,
+        description="Any date within the desired week. Defaults to the current week.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Per-agent premium $ totals for the current Mon→Sun window, broken
+    out by day. Powers the /tv weekly-premium tracker."""
+    start, end = _week_window(week_of)
+    week_start_dt, week_end_dt = business_window_bounds(start, end)
+
+    agents = (
+        db.query(Agent)
+        .filter(Agent.active.is_(True))
+        .order_by(Agent.name.asc())
+        .all()
+    )
+
+    activities = (
+        db.query(Activity.agent_id, Activity.premium, Activity.created_at)
+        .filter(
+            Activity.created_at >= week_start_dt,
+            Activity.created_at < week_end_dt,
+            Activity.premium.isnot(None),
+        )
+        .all()
+    )
+
+    # Bucket premiums by (agent_id, weekday-offset-from-monday).
+    by_agent: Dict[int, List[float]] = {a.id: [0.0] * 7 for a in agents}
+    for agent_id, premium, created_at in activities:
+        if agent_id not in by_agent:
+            continue  # inactive / unknown agent — drop
+        day = business_day_from_utc_naive(created_at)
+        offset = (day - start).days
+        if 0 <= offset <= 6:
+            by_agent[agent_id][offset] += float(premium or 0)
+
+    out: List[WeeklyPremiumAgent] = []
+    for a in agents:
+        days = by_agent[a.id]
+        out.append(
+            WeeklyPremiumAgent(
+                agent_id=a.id,
+                name=a.name,
+                nickname=a.nickname,
+                avatar_url=a.avatar_url,
+                avatar_preset=a.avatar_preset,
+                goal=a.weekly_premium_goal,
+                total=sum(days),
+                days=days,
+            )
+        )
+
+    return WeeklyPremiumReport(week_start=start, week_end=end, agents=out)

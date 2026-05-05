@@ -74,6 +74,7 @@ _PENDING_COLUMNS: dict[str, dict[str, str]] = {
         "avatar_color": "VARCHAR(32)",
         "avatar_frame": "VARCHAR(32)",
         "status_effect": "VARCHAR(32)",
+        "weekly_premium_goal": "INTEGER NOT NULL DEFAULT 10000",
     },
     "settings": {
         "point_overrides": "TEXT NOT NULL DEFAULT '{}'",

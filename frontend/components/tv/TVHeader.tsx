@@ -11,7 +11,7 @@ export type TVPanelKey =
   | "leaderboard"
   | "monthly_race"
   | "wins"
-  | "badges"
+  | "weekly_premium"
   | "contests"
   | "team_goal";
 
@@ -19,7 +19,7 @@ const PANEL_TITLE: Record<TVPanelKey, string> = {
   leaderboard: "Today's leaderboard",
   monthly_race: "Monthly sales race 🏁",
   wins: "Recent wins",
-  badges: "Badge achievements",
+  weekly_premium: "Weekly premium",
   contests: "Active contests",
   team_goal: "Team goal",
 };

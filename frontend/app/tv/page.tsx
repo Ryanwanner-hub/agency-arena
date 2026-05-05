@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, Calendar, Flame } from "lucide-react";
+import { Calendar, Flame } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Avatar } from "@/components/avatar/Avatar";
@@ -11,13 +11,16 @@ import { TeamGoalPanel } from "@/components/tv/TeamGoalPanel";
 import { TVHeader, type TVPanelKey } from "@/components/tv/TVHeader";
 import { TVOfficeGoal } from "@/components/tv/TVOfficeGoal";
 import { TVTicker } from "@/components/tv/TVTicker";
+import {
+  WeeklyPremiumPanel,
+  type WeeklyPremiumReport,
+} from "@/components/tv/WeeklyPremiumPanel";
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import {
   api,
   displayName,
   type AgentProfile,
   type ContestListItem,
-  type EarnedBadge,
   type LeaderboardResponse,
 } from "@/lib/api";
 import { formatDateOnly, localDateKey } from "@/lib/dates";
@@ -30,7 +33,7 @@ const PANELS: TVPanelKey[] = [
   "leaderboard",
   "monthly_race",
   "wins",
-  "badges",
+  "weekly_premium",
   "contests",
   "team_goal",
 ];
@@ -67,26 +70,19 @@ type WinEntry = {
   created_at: string;
 };
 
-type AwardEntry = {
-  id: number;
-  agent_id: number;
-  agent_name: string;
-  avatar_url: string | null;
-  avatar_preset: string | null;
-  badge: EarnedBadge;
-};
-
 type State = {
   leaderboard: LeaderboardResponse;
   monthlyLeaderboard: LeaderboardResponse;
   profiles: AgentProfile[];
   contests: ContestListItem[];
+  weeklyPremium: WeeklyPremiumReport;
 };
 
 async function fetchAll(): Promise<State> {
-  const [leaderboard, monthlyLeaderboard] = await Promise.all([
+  const [leaderboard, monthlyLeaderboard, weeklyPremium] = await Promise.all([
     api<LeaderboardResponse>("/leaderboard?period=daily"),
     api<LeaderboardResponse>("/leaderboard?period=monthly"),
+    api<WeeklyPremiumReport>("/reports/weekly-premium"),
   ]);
   const [profiles, contests] = await Promise.all([
     Promise.all(
@@ -96,7 +92,13 @@ async function fetchAll(): Promise<State> {
     ),
     api<ContestListItem[]>("/contests"),
   ]);
-  return { leaderboard, monthlyLeaderboard, profiles, contests };
+  return {
+    leaderboard,
+    monthlyLeaderboard,
+    profiles,
+    contests,
+    weeklyPremium,
+  };
 }
 
 export default function TVPage() {
@@ -241,25 +243,6 @@ export default function TVPage() {
     return out.slice(0, 8);
   }, [state]);
 
-  const awards = useMemo<AwardEntry[]>(() => {
-    if (!state) return [];
-    const out: AwardEntry[] = [];
-    state.profiles.forEach((p) => {
-      p.badges.forEach((b) => {
-        out.push({
-          id: b.id,
-          agent_id: p.agent.id,
-          agent_name: displayName(p.agent),
-          avatar_url: p.agent.avatar_url,
-          avatar_preset: p.agent.avatar_preset,
-          badge: b,
-        });
-      });
-    });
-    out.sort((a, b) => b.badge.earned_at.localeCompare(a.badge.earned_at));
-    return out.slice(0, 8);
-  }, [state]);
-
   return (
     <div className="fixed inset-0 z-[999] flex flex-col overflow-hidden bg-background text-foreground">
       <TVHeader panel={panel} />
@@ -280,7 +263,9 @@ export default function TVPage() {
               />
             )}
             {panel === "wins" && <WinsPanel wins={wins} />}
-            {panel === "badges" && <BadgesPanel awards={awards} />}
+            {panel === "weekly_premium" && (
+              <WeeklyPremiumPanel report={state.weeklyPremium} />
+            )}
             {panel === "contests" && (
               <ContestsPanel contests={state.contests} />
             )}
@@ -362,56 +347,6 @@ function WinsPanel({ wins }: { wins: WinEntry[] }) {
           <p className="font-mono text-4xl font-bold tabular-nums text-emerald-500">
             +{w.points}
           </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const BADGE_GRADIENT: Record<string, string> = {
-  "First Sale": "from-amber-400 to-orange-500",
-  "Quote Machine": "from-blue-400 to-indigo-500",
-  "Streak Starter": "from-orange-400 to-rose-500",
-  "Top Closer": "from-emerald-400 to-teal-500",
-  "Referral Champ": "from-violet-400 to-purple-500",
-};
-
-function BadgesPanel({ awards }: { awards: AwardEntry[] }) {
-  if (awards.length === 0) {
-    return (
-      <div className="m-auto text-3xl text-muted-foreground">
-        No badges yet — first one's on its way.
-      </div>
-    );
-  }
-  return (
-    <div className="grid w-full grid-cols-2 gap-5 self-start">
-      {awards.map((a) => (
-        <div
-          key={`${a.agent_id}-${a.id}`}
-          className="flex items-center gap-5 rounded-2xl border bg-card/40 px-6 py-5 backdrop-blur"
-        >
-          <div
-            className={cn(
-              "flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white",
-              BADGE_GRADIENT[a.badge.name] ?? "from-zinc-400 to-zinc-600",
-            )}
-          >
-            <Award className="h-8 w-8" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-3xl font-semibold tracking-tight">
-              {a.badge.name}
-            </p>
-            <p className="mt-1 text-lg text-muted-foreground">
-              <span className="text-foreground">{a.agent_name}</span>
-              {" · "}
-              {new Date(a.badge.earned_at).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
-            </p>
-          </div>
         </div>
       ))}
     </div>

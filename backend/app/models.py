@@ -38,6 +38,15 @@ class Agent(Base):
         default=True,
         server_default=expression.true(),
     )
+    # Per-agent weekly premium target shown on the /tv "Weekly premium"
+    # panel. Stored in dollars. Default mirrors the office's standard
+    # rep target; managers tune individual reps via the Agent form.
+    weekly_premium_goal = Column(
+        Integer,
+        nullable=False,
+        default=10000,
+        server_default="10000",
+    )
     start_date = Column(Date, nullable=False, default=date.today)
     created_at = Column(
         DateTime,
