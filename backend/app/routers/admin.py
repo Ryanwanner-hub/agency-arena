@@ -5,10 +5,7 @@ manager can't fat-finger it. Lock down with reverse-proxy auth or an
 ``ADMIN_TOKEN`` check if the deployment is reachable beyond the office.
 """
 
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -57,34 +54,37 @@ def reset_office_data(db: Session = Depends(get_db)) -> dict:
 def recompute_scores(db: Session = Depends(get_db)) -> dict:
     """Rebuild every DailyScore row from the underlying Activity log.
 
-    Run this after changing scoring rules (e.g. when ``cross_sell_sold``
-    started counting as a policy) so the leaderboard, monthly race, and
-    contests reflect the new rules retroactively. Idempotent — safe to
-    re-run.
+    Strategy: wipe DailyScore entirely, then for each (agent, day) tuple
+    that has at least one Activity row, recreate the daily score from
+    scratch. This guarantees no stale rows survive — even ones outside
+    the current activity range or for agents that have since gone
+    inactive.
+
+    Run after any scoring-rule change. Idempotent — safe to re-run.
     """
-    bounds = (
-        db.query(func.min(Activity.created_at), func.max(Activity.created_at))
-        .one()
+    db.query(DailyScore).delete(synchronize_session=False)
+    db.flush()
+
+    activities = (
+        db.query(Activity.agent_id, Activity.created_at)
+        .order_by(Activity.created_at.asc())
+        .all()
     )
-    earliest, latest = bounds
-    if earliest is None or latest is None:
+    if not activities:
+        db.commit()
         return {"recomputed": 0, "message": "no activity to recompute"}
 
-    start_day = business_day_from_utc_naive(earliest)
-    end_day = business_day_from_utc_naive(latest)
+    pairs: set[tuple[int, object]] = set()
+    for agent_id, created_at in activities:
+        pairs.add((agent_id, business_day_from_utc_naive(created_at)))
 
-    agents = [a.id for a in db.query(Agent.id).all()]
-    total = 0
-    day = start_day
-    while day <= end_day:
-        for agent_id in agents:
-            recalculate_daily_score(db, agent_id, day)
-            total += 1
-        day = day + timedelta(days=1)
+    days = sorted({day for _, day in pairs})
+    for agent_id, day in pairs:
+        recalculate_daily_score(db, agent_id, day)
     db.commit()
     return {
-        "recomputed": total,
-        "start": start_day.isoformat(),
-        "end": end_day.isoformat(),
-        "agents": len(agents),
+        "recomputed": len(pairs),
+        "start": days[0].isoformat(),
+        "end": days[-1].isoformat(),
+        "agent_day_pairs": len(pairs),
     }

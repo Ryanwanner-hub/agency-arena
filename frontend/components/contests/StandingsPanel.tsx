@@ -240,7 +240,27 @@ export function StandingsPanel({
               </p>
             </div>
           )}
-          {data && data.entries.length > 0 && (
+          {data &&
+            data.entries.length > 0 &&
+            data.contest.metric !== "improved" &&
+            data.entries.every((e) => e.value === 0) && (
+              <div className="rounded-lg border border-dashed bg-muted/20 px-6 py-10 text-center">
+                <Trophy className="mx-auto mb-2 h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm font-medium">
+                  No {METRIC_LABEL[data.contest.metric] ?? data.contest.metric}{" "}
+                  logged yet
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The race starts as soon as someone logs the first one.
+                </p>
+              </div>
+            )}
+          {data &&
+            data.entries.length > 0 &&
+            !(
+              data.contest.metric !== "improved" &&
+              data.entries.every((e) => e.value === 0)
+            ) && (
             <ol className="space-y-2">
               {data.entries.map((e) => {
                 const isImproved = data.contest.metric === "improved";
