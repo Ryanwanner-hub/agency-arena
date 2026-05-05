@@ -38,10 +38,10 @@ QUOTE_TYPES = frozenset({"quote_completed"})
 POLICY_TYPES = frozenset({"policy_bound", "cross_sell_sold"})
 REFERRAL_TYPES = frozenset({"referral_received"})
 FOLLOWUP_TYPES = frozenset({"followup_completed"})
-# A "bundle" is anything that ties two or more products together:
-# multi-policy binds (auto + home, auto + renters, etc.) and successful
-# cross-sells both count.
-BUNDLE_TYPES = frozenset({"multi_policy_bonus", "cross_sell_sold"})
+# A "bundle" is the multi-policy bind moment — auto + home, auto +
+# renters, etc. Cross-sells add a single product to an existing
+# customer, so they're treated as a policy but NOT as a bundle.
+BUNDLE_TYPES = frozenset({"multi_policy_bonus"})
 # 5-star reviews. ``review_received`` is the only review activity tracked
 # today; if star ratings are added later, restrict this set then.
 REVIEW_TYPES = frozenset({"review_received"})

@@ -48,7 +48,7 @@ const TYPE_HELP: Record<string, string> = {
   multi_policy_bonus:
     "Logs a bundle (auto + home, auto + renters, etc.). Pick the bundle size below — each policy in the bundle counts toward the policies and bundles totals.",
   cross_sell_sold:
-    "An existing customer added a new product. Counts as +1 policy and +1 bundle.",
+    "An existing customer added a new product. Counts as +1 policy (not a bundle — use Multi-policy bonus when 2+ products bind together on one deal).",
   referral_converted: "A referred lead closed. Counts as +1 referral.",
   referral_received: "A new referred lead came in. Counts as +1 referral.",
   review_received: "A 5-star customer review. Counts as +1 review.",
