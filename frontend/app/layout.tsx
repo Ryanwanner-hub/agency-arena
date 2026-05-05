@@ -34,6 +34,7 @@ const FALLBACK_AGENT: Agent = {
   nickname: null,
   title: null,
   active: true,
+  weekly_premium_goal: 10000,
   start_date: "1970-01-01",
   created_at: "1970-01-01T00:00:00",
   updated_at: "1970-01-01T00:00:00",

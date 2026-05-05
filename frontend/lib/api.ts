@@ -31,6 +31,7 @@ export type Agent = {
   nickname: string | null;
   title: string | null;
   active: boolean;
+  weekly_premium_goal: number;
   start_date: string;
   created_at: string;
   updated_at: string;

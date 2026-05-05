@@ -63,6 +63,9 @@ type Draft = {
   avatar_color: string | null;
   avatar_frame: AvatarFrame | null;
   title: string | null;
+  /** Stored as string so the input can be empty mid-edit without
+   * forcing a number conversion on every keystroke. Parsed on save. */
+  weekly_premium_goal: string;
 };
 
 function draftFromAgent(agent: Agent): Draft {
@@ -73,6 +76,7 @@ function draftFromAgent(agent: Agent): Draft {
     avatar_color: agent.avatar_color,
     avatar_frame: (agent.avatar_frame as AvatarFrame | null) ?? null,
     title: agent.title,
+    weekly_premium_goal: String(agent.weekly_premium_goal ?? 10000),
   };
 }
 
@@ -89,6 +93,14 @@ function diffPatch(agent: Agent, draft: Draft): Partial<Agent> {
   if (draft.avatar_frame !== agent.avatar_frame)
     patch.avatar_frame = draft.avatar_frame;
   if (draft.title !== agent.title) patch.title = draft.title;
+  const parsedGoal = Number(draft.weekly_premium_goal);
+  if (
+    Number.isFinite(parsedGoal) &&
+    parsedGoal >= 0 &&
+    parsedGoal !== agent.weekly_premium_goal
+  ) {
+    patch.weekly_premium_goal = parsedGoal;
+  }
   return patch;
 }
 
@@ -231,6 +243,49 @@ export function PersonalizeForm({
                 maxLength={60}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
+            </Field>
+          </Section>
+
+          <Section
+            title="Weekly premium goal"
+            subtitle="Drives this agent's lane on the /tv weekly premium tracker."
+          >
+            <Field label="Goal ($)">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={draft.weekly_premium_goal}
+                  onChange={(e) =>
+                    set("weekly_premium_goal", e.target.value)
+                  }
+                  placeholder="10000"
+                  className="w-32 rounded-md border bg-background px-3 py-2 text-right font-mono text-sm tabular-nums focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[6000, 10000, 15000].map((amt) => {
+                    const active = Number(draft.weekly_premium_goal) === amt;
+                    return (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() =>
+                          set("weekly_premium_goal", String(amt))
+                        }
+                        className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        ${(amt / 1000).toFixed(0)}k
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </Field>
           </Section>
 
