@@ -8,9 +8,13 @@ from app.database import get_db
 from app.models import Activity, Agent
 from app.schemas.activity import ActivityCreate, ActivityFeedItem, ActivityRead
 from app.schemas.agent import AgentRead
-from app.scoring import calculate_points, record_activity_daily_score
+from app.scoring import (
+    calculate_points,
+    recalculate_daily_score,
+    record_activity_daily_score,
+)
 from app.settings_store import get_point_overrides
-from app.time_utils import business_today
+from app.time_utils import business_day_from_utc_naive, business_today
 
 router = APIRouter(prefix="/activity", tags=["activity"])
 
@@ -39,6 +43,34 @@ def create_activity(payload: ActivityCreate, db: Session = Depends(get_db)):
     auto_renew_contests(db, business_today())
 
     return activity
+
+
+@router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_activity(activity_id: int, db: Session = Depends(get_db)):
+    """Remove a logged activity and rebuild that agent's day score so
+    the leaderboard, contests, and weekly tracker drop the points
+    immediately.
+
+    Idempotent rebuild — we recalculate the whole day from remaining
+    Activity rows rather than trying to subtract counters in place. No
+    risk of underflow if a row is replayed.
+    """
+    activity = (
+        db.query(Activity).filter(Activity.id == activity_id).first()
+    )
+    if not activity:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Activity {activity_id} not found",
+        )
+
+    agent_id = activity.agent_id
+    day = business_day_from_utc_naive(activity.created_at)
+    db.delete(activity)
+    db.flush()
+    recalculate_daily_score(db, agent_id, day)
+    db.commit()
+    return None
 
 
 @router.get("/feed", response_model=list[ActivityFeedItem])

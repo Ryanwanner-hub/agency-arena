@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity as ActivityIcon, Filter, Plus } from "lucide-react";
+import { Activity as ActivityIcon, Filter, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -9,6 +9,7 @@ import { Avatar } from "@/components/avatar/Avatar";
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  api,
   type ActivityFeedItem,
   type Agent,
   displayName,
@@ -79,6 +80,21 @@ export function ActivityClient({
   const [filter, setFilter] = useState<Filter>("all");
   const [agentId, setAgentId] = useState<number | "all">("all");
   const [logging, setLogging] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  async function deleteActivity(id: number) {
+    setDeletingId(id);
+    try {
+      await api(`/activity/${id}`, { method: "DELETE" });
+      setPendingDeleteId(null);
+      router.refresh();
+    } catch {
+      // surface failure inline by simply leaving confirm visible
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     return items.filter((it) => {
@@ -230,50 +246,85 @@ export function ActivityClient({
                     </span>
                   </div>
                   <ul className="overflow-hidden rounded-md border bg-card">
-                    {dayItems.map((it, i) => (
-                      <li
-                        key={`${it.agent.id}-${it.id}`}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
-                          i > 0 && "border-t",
-                        )}
-                      >
-                        <Avatar
-                          name={displayName(it.agent)}
-                          avatarUrl={it.agent.avatar_url}
-                          avatarPreset={it.agent.avatar_preset}
-                          backgroundColor={it.agent.avatar_color}
-                          size="sm"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {displayName(it.agent)}
-                            <span className="ml-2 text-xs font-normal text-muted-foreground">
-                              {ACTIVITY_LABEL[
-                                it.activity_type as keyof typeof ACTIVITY_LABEL
-                              ] ?? it.activity_type}
-                            </span>
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {showPremium && it.premium
-                              ? `$${it.premium.toLocaleString()} · `
-                              : ""}
-                            {it.source ? `${it.source.replace(/_/g, " ")} · ` : ""}
-                            {relativeTime(it.created_at)}
-                          </p>
-                        </div>
-                        <span
+                    {dayItems.map((it, i) => {
+                      const pending = pendingDeleteId === it.id;
+                      const deleting = deletingId === it.id;
+                      return (
+                        <li
+                          key={`${it.agent.id}-${it.id}`}
                           className={cn(
-                            "shrink-0 font-mono text-sm font-semibold tabular-nums",
-                            it.points > 0
-                              ? "text-emerald-600"
-                              : "text-muted-foreground",
+                            "group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
+                            i > 0 && "border-t",
+                            pending && "bg-destructive/5",
                           )}
                         >
-                          +{it.points}
-                        </span>
-                      </li>
-                    ))}
+                          <Avatar
+                            name={displayName(it.agent)}
+                            avatarUrl={it.agent.avatar_url}
+                            avatarPreset={it.agent.avatar_preset}
+                            backgroundColor={it.agent.avatar_color}
+                            size="sm"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">
+                              {displayName(it.agent)}
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {ACTIVITY_LABEL[
+                                  it.activity_type as keyof typeof ACTIVITY_LABEL
+                                ] ?? it.activity_type}
+                              </span>
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {showPremium && it.premium
+                                ? `$${it.premium.toLocaleString()} · `
+                                : ""}
+                              {it.source ? `${it.source.replace(/_/g, " ")} · ` : ""}
+                              {relativeTime(it.created_at)}
+                            </p>
+                          </div>
+                          <span
+                            className={cn(
+                              "shrink-0 font-mono text-sm font-semibold tabular-nums",
+                              it.points > 0
+                                ? "text-emerald-600"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            +{it.points}
+                          </span>
+                          {pending ? (
+                            <span className="flex shrink-0 items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => deleteActivity(it.id)}
+                                disabled={deleting}
+                                className="rounded-md bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+                              >
+                                {deleting ? "Deleting…" : "Confirm"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPendingDeleteId(null)}
+                                disabled={deleting}
+                                className="rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
+                              >
+                                Cancel
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(it.id)}
+                              className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                              aria-label="Delete activity"
+                              title="Delete activity"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               ))}
