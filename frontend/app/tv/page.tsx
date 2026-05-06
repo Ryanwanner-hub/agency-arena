@@ -21,6 +21,7 @@ import {
   displayName,
   type AgentProfile,
   type ContestListItem,
+  type ContestStandings,
   type LeaderboardResponse,
 } from "@/lib/api";
 import { formatDateOnly, localDateKey } from "@/lib/dates";
@@ -75,6 +76,9 @@ type State = {
   monthlyLeaderboard: LeaderboardResponse;
   profiles: AgentProfile[];
   contests: ContestListItem[];
+  /** Standings per contest id — fetched in parallel for the TV
+   * Contests panel so each card can show top 3 instead of just metadata. */
+  standingsById: Record<number, ContestStandings>;
   weeklyPremium: WeeklyPremiumReport;
 };
 
@@ -92,11 +96,26 @@ async function fetchAll(): Promise<State> {
     ),
     api<ContestListItem[]>("/contests"),
   ]);
+
+  // Standings get fetched per-contest. Each one is an independent
+  // request; failure of any single contest shouldn't blank the whole
+  // panel, so we settle each one and drop failures.
+  const standingsResults = await Promise.allSettled(
+    contests.map((c) =>
+      api<ContestStandings>(`/contests/${c.id}/standings`),
+    ),
+  );
+  const standingsById: Record<number, ContestStandings> = {};
+  standingsResults.forEach((res, i) => {
+    if (res.status === "fulfilled") standingsById[contests[i].id] = res.value;
+  });
+
   return {
     leaderboard,
     monthlyLeaderboard,
     profiles,
     contests,
+    standingsById,
     weeklyPremium,
   };
 }
@@ -267,7 +286,10 @@ export default function TVPage() {
               <WeeklyPremiumPanel report={state.weeklyPremium} />
             )}
             {panel === "contests" && (
-              <ContestsPanel contests={state.contests} />
+              <ContestsPanel
+                contests={state.contests}
+                standingsById={state.standingsById}
+              />
             )}
             {panel === "team_goal" && (
               <TeamGoalPanel leaderboard={state.leaderboard} />
@@ -353,26 +375,64 @@ function WinsPanel({ wins }: { wins: WinEntry[] }) {
   );
 }
 
-function ContestsPanel({ contests }: { contests: ContestListItem[] }) {
-  const sorted = [...contests].sort((a, b) =>
-    a.end_date.localeCompare(b.end_date),
+const CONTEST_RANK_TILE: Record<number, string> = {
+  1: "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950",
+  2: "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-900",
+  3: "bg-gradient-to-br from-orange-400 to-orange-600 text-white",
+};
+
+function formatContestValue(value: number, metric: string): string {
+  if (metric === "improved") {
+    const sign = value > 0 ? "+" : "";
+    return `${sign}${Math.round(value)} pts`;
+  }
+  if (metric === "points") return `${Math.round(value)} pts`;
+  return String(Math.round(value));
+}
+
+function ContestsPanel({
+  contests,
+  standingsById,
+}: {
+  contests: ContestListItem[];
+  standingsById: Record<number, ContestStandings>;
+}) {
+  const today = localDateKey();
+  // Active contests first (sorted by end_date), then pending, then ended.
+  const sorted = [...contests].sort((a, b) => {
+    const aActive = a.start_date <= today && a.end_date >= today ? 0 : 1;
+    const bActive = b.start_date <= today && b.end_date >= today ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    return a.end_date.localeCompare(b.end_date);
+  });
+  const visible = sorted.filter(
+    (c) => c.start_date <= today && c.end_date >= today,
   );
-  if (sorted.length === 0) {
+  const display = visible.length > 0 ? visible : sorted.slice(0, 4);
+
+  if (display.length === 0) {
     return (
       <div className="m-auto text-3xl text-muted-foreground">
         No contests running.
       </div>
     );
   }
-  const today = localDateKey();
+
   return (
-    <div className="grid w-full grid-cols-1 gap-5 self-start lg:grid-cols-2">
-      {sorted.map((c) => {
+    <div className="grid w-full auto-rows-min grid-cols-1 gap-5 self-start lg:grid-cols-2">
+      {display.map((c) => {
         const active = c.start_date <= today && c.end_date >= today;
+        const standings = standingsById[c.id];
+        const top3 = standings?.entries.slice(0, 3) ?? [];
+        const allZero =
+          c.metric !== "improved" &&
+          top3.length > 0 &&
+          top3.every((e) => e.value === 0);
+
         return (
           <div
             key={c.id}
-            className="flex flex-col gap-3 rounded-2xl border bg-card/40 px-7 py-6 backdrop-blur"
+            className="flex flex-col gap-4 rounded-2xl border bg-card/40 px-7 py-6 backdrop-blur"
           >
             <div className="flex items-center justify-between">
               <span
@@ -390,8 +450,8 @@ function ContestsPanel({ contests }: { contests: ContestListItem[] }) {
                 {c.type} · {c.metric.replace(/_/g, " ")}
               </span>
             </div>
-            <p className="text-4xl font-semibold tracking-tight">{c.name}</p>
-            <p className="flex items-center gap-2 text-lg text-muted-foreground">
+            <p className="text-3xl font-semibold tracking-tight">{c.name}</p>
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               {formatDateOnly(c.start_date, {
                 month: "short",
@@ -403,6 +463,45 @@ function ContestsPanel({ contests }: { contests: ContestListItem[] }) {
                 day: "numeric",
               })}
             </p>
+
+            <div className="mt-1 border-t border-border/60 pt-4">
+              {!standings ? (
+                <p className="text-base text-muted-foreground">Loading…</p>
+              ) : allZero ? (
+                <p className="text-base text-muted-foreground">
+                  No {c.metric.replace(/_/g, " ")} logged yet — be the first.
+                </p>
+              ) : top3.length === 0 ? (
+                <p className="text-base text-muted-foreground">
+                  Standings will populate as activity rolls in.
+                </p>
+              ) : (
+                <ol className="space-y-2">
+                  {top3.map((e) => (
+                    <li
+                      key={e.agent_id}
+                      className="flex items-center gap-3"
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold",
+                          CONTEST_RANK_TILE[e.rank] ??
+                            "border bg-muted/60 text-muted-foreground",
+                        )}
+                      >
+                        {e.rank}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-xl font-semibold">
+                        {e.name}
+                      </span>
+                      <span className="font-mono text-2xl font-bold tabular-nums">
+                        {formatContestValue(e.value, c.metric)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           </div>
         );
       })}
