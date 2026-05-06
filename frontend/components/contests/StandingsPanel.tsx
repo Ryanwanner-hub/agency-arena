@@ -57,6 +57,9 @@ export function StandingsPanel({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Initial fetch + live poll while the panel is open. New activity
+  // logged elsewhere (manually or via the API) shows up without
+  // closing/reopening the panel.
   useEffect(() => {
     if (contestId === null) {
       setData(null);
@@ -64,23 +67,44 @@ export function StandingsPanel({
       return;
     }
     let cancelled = false;
+    let inFlight = false;
+    let firstLoad = true;
     setLoading(true);
     setError(null);
-    api<ContestStandings>(`/contests/${contestId}/standings`)
-      .then((d) => {
-        if (!cancelled) {
-          setData(d);
+
+    const fetchOnce = async () => {
+      if (inFlight) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      inFlight = true;
+      try {
+        const d = await api<ContestStandings>(
+          `/contests/${contestId}/standings`,
+        );
+        if (cancelled) return;
+        setData(d);
+        if (firstLoad) {
           setLoading(false);
+          firstLoad = false;
         }
-      })
-      .catch((e) => {
-        if (!cancelled) {
+      } catch (e) {
+        if (cancelled) return;
+        if (firstLoad) {
           setError(e instanceof Error ? e.message : "Failed to load");
           setLoading(false);
+          firstLoad = false;
         }
-      });
+        // Subsequent poll failures are silent — keep showing last
+        // good data and let the next tick retry.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void fetchOnce();
+    const id = setInterval(fetchOnce, 10_000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [contestId]);
 

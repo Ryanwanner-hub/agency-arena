@@ -1,13 +1,18 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ContestCard } from "@/components/contests/ContestCard";
 import { CreateContestModal } from "@/components/contests/CreateContestModal";
 import { StandingsPanel } from "@/components/contests/StandingsPanel";
 import { cn } from "@/lib/utils";
 import { api, type ContestListItem, type ContestStatus } from "@/lib/api";
+
+/** How often to refetch the contest list while the page is open. Picks
+ * up new leaders + status flips (pending → active → ended) without a
+ * manual refresh. 20 s is a comfortable cadence for monthly windows. */
+const POLL_MS = 20_000;
 
 type Filter = "all" | ContestStatus;
 
@@ -41,6 +46,35 @@ export function ContestsClient({
     const next = await api<ContestListItem[]>("/contests");
     setContests(next);
   }
+
+  // Live-poll the contest list while the page is open. Fold in new
+  // leaders + auto-status flips without forcing the manager to refresh.
+  // Bails on tab visibility = hidden so the user's idle tab stops
+  // hammering the API.
+  useEffect(() => {
+    let cancelled = false;
+    let inFlight = false;
+
+    const tick = async () => {
+      if (inFlight) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      inFlight = true;
+      try {
+        const next = await api<ContestListItem[]>("/contests");
+        if (!cancelled) setContests(next);
+      } catch {
+        // ignore transient fetch failures — next tick retries
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const id = setInterval(tick, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
