@@ -59,6 +59,28 @@ export type ActivityFeedItem = Activity & {
   agent: Agent;
 };
 
+export type SummaryAgentRow = {
+  agent_id: number;
+  name: string;
+  nickname: string | null;
+  role: string;
+  total_points: number;
+  policies: number;
+  bundles: number;
+  referrals: number;
+  reviews: number;
+  premium_total: number;
+  close_rate: number;
+};
+
+export type SummaryReport = {
+  start_date: string;
+  end_date: string;
+  team: SummaryAgentRow;
+  agents: SummaryAgentRow[];
+  activity_by_type: Record<string, number>;
+};
+
 export type ContestType = "daily" | "weekly" | "monthly" | "custom";
 export type ContestMetric =
   | "quotes"

@@ -25,9 +25,15 @@ def create_activity(payload: ActivityCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Agent {payload.agent_id} not found")
 
     point_overrides = get_point_overrides(db)
+    # ``occurred_at`` is a payload-only hint — it never reaches the
+    # column. We map it onto Activity.created_at so the rest of the
+    # pipeline (DailyScore upsert, business-day bucketing) just works.
+    data = payload.model_dump()
+    occurred = data.pop("occurred_at", None)
     activity = Activity(
-        **payload.model_dump(),
+        **data,
         points=calculate_points(payload.activity_type, point_overrides),
+        **({"created_at": occurred} if occurred is not None else {}),
     )
     db.add(activity)
     db.flush()

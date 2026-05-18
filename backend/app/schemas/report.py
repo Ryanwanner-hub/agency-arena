@@ -57,3 +57,25 @@ class WeeklyPremiumReport(BaseModel):
     week_start: date
     week_end: date
     agents: List[WeeklyPremiumAgent]
+
+
+class SummaryAgentRow(BaseModel):
+    agent_id: int
+    name: str
+    nickname: Optional[str] = None
+    role: str
+    total_points: int
+    policies: int
+    bundles: int
+    referrals: int
+    reviews: int
+    premium_total: float
+    close_rate: float
+
+
+class SummaryReport(BaseModel):
+    start_date: date
+    end_date: date
+    team: SummaryAgentRow
+    agents: List[SummaryAgentRow]
+    activity_by_type: Dict[str, int]

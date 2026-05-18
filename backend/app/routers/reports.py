@@ -9,6 +9,8 @@ from app.database import get_db
 from app.models import Activity, Agent, DailyScore
 from app.schemas.report import (
     AgentBreakdown,
+    SummaryAgentRow,
+    SummaryReport,
     TeamTotals,
     TopPerformer,
     WeeklyPremiumAgent,
@@ -192,3 +194,132 @@ def get_weekly_premium(
         )
 
     return WeeklyPremiumReport(week_start=start, week_end=end, agents=out)
+
+
+@router.get("/summary", response_model=SummaryReport)
+def get_summary(
+    start: Optional[date] = Query(
+        None,
+        description="Start date (inclusive). Defaults to the first of the current month.",
+    ),
+    end: Optional[date] = Query(
+        None,
+        description="End date (inclusive). Defaults to today.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Per-agent metric breakdown for an arbitrary date window. Drives the
+    /reports page — policies / bundles / referrals / reviews / premium $
+    / total points, plus a team total row and an activity-type histogram.
+    """
+    today = business_today()
+    s = start or today.replace(day=1)
+    e = end or today
+    if e < s:
+        s, e = e, s
+
+    window_start, window_end = business_window_bounds(s, e)
+
+    # DailyScore-backed counters
+    rows = (
+        db.query(
+            Agent.id,
+            Agent.name,
+            Agent.nickname,
+            Agent.role,
+            func.coalesce(func.sum(DailyScore.total_points), 0).label("total_points"),
+            func.coalesce(func.sum(DailyScore.policies), 0).label("policies"),
+            func.coalesce(func.sum(DailyScore.bundles), 0).label("bundles"),
+            func.coalesce(func.sum(DailyScore.referrals), 0).label("referrals"),
+            func.coalesce(func.sum(DailyScore.reviews), 0).label("reviews"),
+            func.coalesce(func.sum(DailyScore.quotes), 0).label("quotes"),
+        )
+        .outerjoin(
+            DailyScore,
+            (DailyScore.agent_id == Agent.id)
+            & (DailyScore.date >= s)
+            & (DailyScore.date <= e),
+        )
+        .filter(Agent.active.is_(True))
+        .group_by(Agent.id, Agent.name, Agent.nickname, Agent.role)
+        .order_by(desc("total_points"), Agent.name.asc())
+        .all()
+    )
+
+    # Premium $ totals come from Activity, not DailyScore (we don't sum
+    # premium into the daily rollup).
+    premium_rows = (
+        db.query(
+            Activity.agent_id,
+            func.coalesce(func.sum(Activity.premium), 0.0),
+        )
+        .filter(
+            Activity.created_at >= window_start,
+            Activity.created_at < window_end,
+            Activity.premium.isnot(None),
+        )
+        .group_by(Activity.agent_id)
+        .all()
+    )
+    premium_by_agent: Dict[int, float] = {aid: float(p or 0) for aid, p in premium_rows}
+
+    agents: List[SummaryAgentRow] = []
+    team_points = team_policies = team_bundles = 0
+    team_referrals = team_reviews = team_quotes = 0
+    team_premium = 0.0
+    for r in rows:
+        prem = premium_by_agent.get(r.id, 0.0)
+        agents.append(
+            SummaryAgentRow(
+                agent_id=r.id,
+                name=r.name,
+                nickname=r.nickname,
+                role=r.role,
+                total_points=int(r.total_points),
+                policies=int(r.policies),
+                bundles=int(r.bundles),
+                referrals=int(r.referrals),
+                reviews=int(r.reviews),
+                premium_total=prem,
+                close_rate=close_rate(int(r.policies), int(r.quotes)),
+            )
+        )
+        team_points += int(r.total_points)
+        team_policies += int(r.policies)
+        team_bundles += int(r.bundles)
+        team_referrals += int(r.referrals)
+        team_reviews += int(r.reviews)
+        team_quotes += int(r.quotes)
+        team_premium += prem
+
+    team = SummaryAgentRow(
+        agent_id=0,
+        name="Team",
+        role="team",
+        total_points=team_points,
+        policies=team_policies,
+        bundles=team_bundles,
+        referrals=team_referrals,
+        reviews=team_reviews,
+        premium_total=team_premium,
+        close_rate=close_rate(team_policies, team_quotes),
+    )
+
+    type_rows = (
+        db.query(Activity.activity_type, func.count(Activity.id))
+        .filter(
+            Activity.created_at >= window_start,
+            Activity.created_at < window_end,
+        )
+        .group_by(Activity.activity_type)
+        .all()
+    )
+    activity_by_type = {t: c for t, c in type_rows}
+
+    return SummaryReport(
+        start_date=s,
+        end_date=e,
+        team=team,
+        agents=agents,
+        activity_by_type=activity_by_type,
+    )

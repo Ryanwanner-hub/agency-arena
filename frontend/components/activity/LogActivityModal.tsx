@@ -4,6 +4,7 @@ import { DollarSign, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { api, displayName, type Activity, type Agent } from "@/lib/api";
+import { localDateKey } from "@/lib/dates";
 import { ACTIVITY_LABEL, ACTIVITY_TYPES } from "@/lib/manager-settings";
 import { cn } from "@/lib/utils";
 
@@ -80,11 +81,14 @@ export function LogActivityModal({
   const [premium, setPremium] = useState<string>("");
   const [source, setSource] = useState<string>("");
   const [bundleSize, setBundleSize] = useState<number>(2);
+  const [logDate, setLogDate] = useState<string>(() => localDateKey());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const showsPremium = PREMIUM_TYPES.has(activityType);
   const isBundle = activityType === "multi_policy_bonus";
+  const todayKey = localDateKey();
+  const isBackdated = logDate !== todayKey;
 
   useEffect(() => {
     if (!showsPremium) setPremium("");
@@ -120,6 +124,13 @@ export function LogActivityModal({
       return Number.isFinite(n) && n >= 0 ? n : null;
     })();
     const trimmedSource = source.trim() || null;
+    // Send occurred_at only for backdated entries. For "today" we let
+    // the server's now() win so the timestamp reflects the actual log
+    // moment, not midnight of today.
+    const occurredAt = isBackdated
+      ? new Date(`${logDate}T12:00:00`).toISOString()
+      : null;
+    const dateFields = occurredAt ? { occurred_at: occurredAt } : {};
 
     try {
       let last: Activity | null = null;
@@ -136,6 +147,7 @@ export function LogActivityModal({
               agent_id: agentId,
               activity_type: "policy_bound",
               ...(trimmedSource ? { source: trimmedSource } : {}),
+              ...dateFields,
             }),
           });
         }
@@ -146,6 +158,7 @@ export function LogActivityModal({
             activity_type: "multi_policy_bonus",
             ...(premiumValue !== null ? { premium: premiumValue } : {}),
             ...(trimmedSource ? { source: trimmedSource } : {}),
+            ...dateFields,
           }),
         });
       } else {
@@ -155,6 +168,7 @@ export function LogActivityModal({
         };
         if (premiumValue !== null) body.premium = premiumValue;
         if (trimmedSource) body.source = trimmedSource;
+        if (occurredAt) body.occurred_at = occurredAt;
         last = await api<Activity>("/activity", {
           method: "POST",
           body: JSON.stringify(body),
@@ -342,6 +356,40 @@ export function LogActivityModal({
                 ))}
               </div>
             </div>
+          </Field>
+
+          <Field label="When did it happen?">
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={logDate}
+                max={todayKey}
+                onChange={(e) => setLogDate(e.target.value || todayKey)}
+                className={cn(
+                  "w-44 rounded-md border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary",
+                  isBackdated && "border-amber-500/60 ring-1 ring-amber-500/30",
+                )}
+              />
+              {isBackdated ? (
+                <button
+                  type="button"
+                  onClick={() => setLogDate(todayKey)}
+                  className="rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  Reset to today
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Defaults to today — change to backdate.
+                </span>
+              )}
+            </div>
+            {isBackdated && (
+              <p className="mt-1.5 text-[11px] text-amber-600">
+                Backdating — the activity will land on {logDate} and update
+                that day's leaderboard / contest totals.
+              </p>
+            )}
           </Field>
 
           {error && (

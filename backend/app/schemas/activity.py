@@ -12,6 +12,11 @@ class ActivityBase(BaseModel):
     activity_type: str
     premium: Optional[float] = Field(default=None, ge=0)
     source: Optional[str] = None
+    # Backdating: when a manager logs a sale a day or two after it
+    # actually happened, pass an explicit timestamp here. Naive (server
+    # treats it as the office's business day). Leave null to use the
+    # current moment.
+    occurred_at: Optional[datetime] = None
 
     @field_validator("activity_type")
     @classmethod

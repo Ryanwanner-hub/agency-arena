@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  BarChart3,
   LayoutDashboard,
   Settings,
   Trophy,
@@ -18,6 +19,7 @@ const items = [
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/contests", label: "Contests", icon: Trophy },
   { href: "/agents", label: "Agents", icon: Users },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
