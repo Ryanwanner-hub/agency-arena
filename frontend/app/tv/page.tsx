@@ -319,8 +319,7 @@ export default function TVPage() {
 
 function RotationFooter({ panel }: { panel: TVPanelKey }) {
   return (
-    <footer className="flex items-center justify-between border-t border-border/60 px-6 py-3 text-sm text-muted-foreground sm:px-8 lg:px-12">
-      <span>Auto-refreshing every 10 seconds · panel rotates every 15</span>
+    <footer className="flex items-center justify-center border-t border-border/60 px-6 py-2 sm:px-8 lg:px-12">
       <div className="flex items-center gap-2">
         {PANELS.map((p) => (
           <span
