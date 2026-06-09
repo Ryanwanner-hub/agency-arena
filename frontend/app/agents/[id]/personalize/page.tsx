@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { ApiErrorState } from "@/components/ui/api-error-state";
 import {
   api,
   type Activity,
@@ -30,9 +31,9 @@ export default async function AgentPersonalizePage({
     ]);
   } catch (e) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-        {e instanceof Error ? e.message : "Failed to load agent"}
-      </div>
+      <ApiErrorState
+        message={e instanceof Error ? e.message : "Failed to load agent"}
+      />
     );
   }
 

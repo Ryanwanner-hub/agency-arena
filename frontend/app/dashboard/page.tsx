@@ -1,4 +1,5 @@
 import { DashboardClient } from "./DashboardClient";
+import { ApiErrorState } from "@/components/ui/api-error-state";
 import {
   api,
   type AgentProfile,
@@ -27,11 +28,7 @@ export default async function DashboardPage() {
   }
 
   if (error || !leaderboard) {
-    return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-        {error ?? "Failed to load dashboard"}
-      </div>
-    );
+    return <ApiErrorState message={error ?? "Failed to load dashboard"} />;
   }
 
   return (

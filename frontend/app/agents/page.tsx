@@ -1,4 +1,5 @@
 import { AgentsClient } from "./AgentsClient";
+import { ApiErrorState } from "@/components/ui/api-error-state";
 import { api, type Agent, type AgentProfile } from "@/lib/api";
 
 export const metadata = { title: "Agents · Agency Arena" };
@@ -18,11 +19,7 @@ export default async function AgentsPage() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        {error}
-      </div>
-    );
+    return <ApiErrorState message={error} />;
   }
 
   return <AgentsClient agents={agents} profiles={profiles} />;

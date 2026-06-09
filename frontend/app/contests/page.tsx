@@ -1,4 +1,5 @@
 import { ContestsClient } from "./ContestsClient";
+import { ApiErrorState } from "@/components/ui/api-error-state";
 import { api, type ContestListItem } from "@/lib/api";
 
 export default async function ContestsPage() {
@@ -11,11 +12,7 @@ export default async function ContestsPage() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-        {error}
-      </div>
-    );
+    return <ApiErrorState message={error} />;
   }
 
   return <ContestsClient initialContests={contests} />;

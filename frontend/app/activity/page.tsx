@@ -1,4 +1,5 @@
 import { ActivityClient } from "./ActivityClient";
+import { ApiErrorState } from "@/components/ui/api-error-state";
 import { api, type ActivityFeedItem, type Agent } from "@/lib/api";
 
 export const metadata = { title: "Activity · Agency Arena" };
@@ -20,11 +21,7 @@ export default async function ActivityPage() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        {error}
-      </div>
-    );
+    return <ApiErrorState message={error} />;
   }
 
   return <ActivityClient items={items} agents={agents} />;

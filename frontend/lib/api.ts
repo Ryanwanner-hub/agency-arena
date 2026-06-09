@@ -1,22 +1,90 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8001";
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+// Render free web services sleep after ~15 min idle and briefly 502 during
+// redeploys. Those gateway statuses (and outright network failures) are
+// transient, so we retry with backoff instead of surfacing the raw error —
+// which, for a sleeping backend, is a full HTML "Bad Gateway" page.
+const TRANSIENT_STATUS = new Set([502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+const BACKOFF_MS = [500, 1500];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Build a short, human-readable message from a failed response — never the
+ * raw body, which for a gateway error is an entire HTML document. */
+async function describeError(res: Response): Promise<string> {
+  if (TRANSIENT_STATUS.has(res.status)) {
+    return `The server is starting up (${res.status}). Give it a moment and try again.`;
   }
-  // 204 No Content (e.g. DELETE) has an empty body — don't try to parse.
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  let detail = "";
+  try {
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const data = (await res.json()) as { detail?: unknown };
+      detail =
+        typeof data?.detail === "string"
+          ? data.detail
+          : data?.detail
+            ? JSON.stringify(data.detail)
+            : "";
+    } else {
+      const text = (await res.text()).trim();
+      // Only surface short plain-text bodies; skip HTML error pages.
+      if (text && !text.startsWith("<")) detail = text.slice(0, 200);
+    }
+  } catch {
+    // fall through to the status line
+  }
+  return `API ${res.status}: ${detail || res.statusText || "request failed"}`;
+}
+
+export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  // POSTs aren't idempotent (e.g. logging an activity double-counts), so we
+  // never replay them. Reads and idempotent writes (PATCH/DELETE) are safe.
+  const retrySafe = method !== "POST";
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const lastAttempt = attempt === MAX_ATTEMPTS - 1;
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+        cache: "no-store",
+      });
+    } catch {
+      // Network error — backend unreachable, often a cold start mid-wake.
+      if (retrySafe && !lastAttempt) {
+        await sleep(BACKOFF_MS[attempt] ?? 1500);
+        continue;
+      }
+      throw new Error(
+        "Can't reach the server — it may be waking up. Please try again in a moment.",
+      );
+    }
+
+    if (res.ok) {
+      // 204 No Content (e.g. DELETE) has an empty body — don't try to parse.
+      if (res.status === 204) return undefined as T;
+      return (await res.json()) as T;
+    }
+
+    // Retry transient gateway statuses; fail fast on real 4xx/5xx.
+    if (TRANSIENT_STATUS.has(res.status) && retrySafe && !lastAttempt) {
+      await sleep(BACKOFF_MS[attempt] ?? 1500);
+      continue;
+    }
+    throw new Error(await describeError(res));
+  }
+  // The loop always returns or throws above; this satisfies the type checker.
+  throw new Error("Request failed");
 }
 
 export type Agent = {
