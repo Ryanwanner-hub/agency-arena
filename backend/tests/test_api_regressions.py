@@ -59,6 +59,55 @@ def test_rejects_invalid_settings_agent(tmp_path, monkeypatch):
     assert "not found" in response.text
 
 
+def test_delete_agent_cascades_and_repoints_current(tmp_path, monkeypatch):
+    with load_client(tmp_path, monkeypatch) as client:
+        alice_id = client.post("/agents", json={"name": "Alice", "role": "agent"}).json()["id"]
+        bob_id = client.post("/agents", json={"name": "Bob", "role": "agent"}).json()["id"]
+
+        # Give Alice a scoring activity, then point Settings at her so the
+        # delete has both a cascade and a current-agent repoint to exercise.
+        client.post("/activity", json={"agent_id": alice_id, "activity_type": "policy_bound"})
+        client.patch("/settings", json={"current_agent_id": alice_id})
+
+        deleted = client.delete(f"/agents/{alice_id}")
+        missing = client.get(f"/agents/{alice_id}")
+        agents = client.get("/agents").json()
+        leaderboard = client.get("/leaderboard?period=daily").json()
+        settings = client.get("/settings").json()
+
+    assert deleted.status_code == 204
+    assert missing.status_code == 404
+    assert [a["id"] for a in agents] == [bob_id]
+    # Her daily score cascaded away, so she's gone from the leaderboard too.
+    assert all(e["agent_id"] != alice_id for e in leaderboard["entries"])
+    # current_agent_id repointed off the deleted agent onto the survivor.
+    assert settings["current_agent_id"] == bob_id
+
+
+def test_delete_missing_agent_returns_404(tmp_path, monkeypatch):
+    with load_client(tmp_path, monkeypatch) as client:
+        response = client.delete("/agents/9999")
+
+    assert response.status_code == 404
+
+
+def test_deactivated_agent_hidden_from_leaderboard_but_kept(tmp_path, monkeypatch):
+    with load_client(tmp_path, monkeypatch) as client:
+        alice_id = client.post("/agents", json={"name": "Alice", "role": "agent"}).json()["id"]
+        client.post("/activity", json={"agent_id": alice_id, "activity_type": "policy_bound"})
+
+        before = client.get("/leaderboard?period=daily").json()
+        patched = client.patch(f"/agents/{alice_id}", json={"active": False})
+        after = client.get("/leaderboard?period=daily").json()
+        # The agent record (and its history) survives the deactivation.
+        still_there = client.get(f"/agents/{alice_id}").json()
+
+    assert patched.status_code == 200
+    assert any(e["agent_id"] == alice_id for e in before["entries"])
+    assert all(e["agent_id"] != alice_id for e in after["entries"])
+    assert still_there["active"] is False
+
+
 def test_rejects_invalid_referral_counts(tmp_path, monkeypatch):
     with load_client(tmp_path, monkeypatch) as client:
         response = client.post(

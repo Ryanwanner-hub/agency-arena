@@ -18,6 +18,7 @@ from app.schemas.profile import (
     LifetimeStats,
 )
 from app.scoring import close_rate
+from app.settings_store import get_or_create_settings
 from app.time_utils import business_today
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -122,6 +123,37 @@ def update_agent(
     db.commit()
     db.refresh(agent)
     return agent
+
+
+@router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_agent(agent_id: int, db: Session = Depends(get_db)):
+    """Permanently remove an agent. The ORM cascade ("all, delete-orphan"
+    on Agent.activities / daily_scores / badges) clears their activity,
+    day scores, and badge links along with the row, so the leaderboard,
+    contests, and TV panels drop them on their next read."""
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
+
+    # Drop any uploaded avatar file from disk before the row disappears.
+    _delete_local_avatar(agent.avatar_url)
+
+    # current_agent_id isn't a foreign key, so a delete would leave it
+    # dangling. If Settings points at the agent we're removing, repoint it to
+    # another agent (0 when none remain — the frontend falls back to a guest).
+    settings = get_or_create_settings(db)
+    if settings.current_agent_id == agent_id:
+        replacement = (
+            db.query(Agent.id)
+            .filter(Agent.id != agent_id)
+            .order_by(Agent.id.asc())
+            .scalar()
+        )
+        settings.current_agent_id = replacement or 0
+
+    db.delete(agent)
+    db.commit()
+    return None
 
 
 @router.post("/{agent_id}/avatar", response_model=AgentRead)
