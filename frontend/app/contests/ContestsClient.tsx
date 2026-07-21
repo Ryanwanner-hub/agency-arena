@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { ContestCard } from "@/components/contests/ContestCard";
 import { CreateContestModal } from "@/components/contests/CreateContestModal";
 import { StandingsPanel } from "@/components/contests/StandingsPanel";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { api, type ContestListItem, type ContestStatus } from "@/lib/api";
 
@@ -78,24 +80,18 @@ export function ContestsClient({
 
   return (
     <div className="space-y-6">
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Contests</h1>
-          <p className="text-sm text-muted-foreground">
-            Active and past sales challenges. Click any contest to see standings.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          New contest
-        </button>
-      </header>
+      <PageHeader
+        title="Contests"
+        subtitle="Active and past sales challenges. Click any contest to see standings."
+        actions={
+          <Button type="button" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" />
+            New contest
+          </Button>
+        }
+      />
 
-      <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
+      <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map((f) => {
           const count =
             f.value === "all"
@@ -107,14 +103,21 @@ export function ContestsClient({
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                "flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                 active
-                  ? "bg-card shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
               {f.label}
-              <span className="ml-1.5 text-xs text-muted-foreground">
+              <span
+                className={cn(
+                  "ml-1.5 text-xs",
+                  active
+                    ? "text-primary-foreground/80"
+                    : "text-muted-foreground",
+                )}
+              >
                 {count}
               </span>
             </button>

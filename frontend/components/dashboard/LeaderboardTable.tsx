@@ -25,26 +25,30 @@ export function LeaderboardTable({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Leaderboard</CardTitle>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardTitle className="font-display">Leaderboard</CardTitle>
+        <span className="flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="live-dot" aria-hidden />
+          Live
+        </span>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/60 text-xs uppercase tracking-wider text-muted-foreground">
+            <thead className="bg-muted/60 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
-                <th className="px-5 py-3 text-left font-semibold">Rank</th>
-                <th className="px-5 py-3 text-left font-semibold">Agent</th>
-                <th className="px-5 py-3 text-right font-semibold">Points</th>
-                <th className="px-5 py-3 text-right font-semibold">Quotes</th>
-                <th className="px-5 py-3 text-right font-semibold">Policies</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Rank</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Agent</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Points</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Quotes</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Policies</th>
                 {showCloseRate && (
-                  <th className="px-5 py-3 text-right font-semibold">
+                  <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">
                     Close Rate
                   </th>
                 )}
-                <th className="px-5 py-3 text-right font-semibold">Streak</th>
-                <th className="px-5 py-3 text-left font-semibold">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Streak</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>

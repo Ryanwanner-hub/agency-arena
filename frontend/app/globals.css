@@ -16,16 +16,188 @@
 
   body {
     background: var(--body-bg);
-    @apply text-foreground;
+    background-attachment: fixed;
+    @apply font-sans text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     transition: background 240ms ease;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Thin, theme-aware scrollbars — chunky default bars cheapen the look. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Consistent, visible focus for keyboard users on every theme. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.7);
+    outline-offset: 2px;
   }
 
   /* Card shadow / glow is theme-driven. Components stay theme-agnostic. */
   .rounded-lg.border.bg-card,
   .rounded-xl.border.bg-card {
     box-shadow: var(--card-glow);
-    transition: box-shadow 240ms ease;
+    transition: box-shadow 240ms ease, transform 240ms ease,
+      border-color 240ms ease;
+  }
+}
+
+@layer components {
+  /* ─── App shell ─── */
+  .app-sidebar {
+    background: var(--sidebar-bg);
+    color: hsl(var(--sidebar-fg));
+    border-color: hsl(var(--sidebar-border));
+  }
+  .app-sidebar .sidebar-muted {
+    color: hsl(var(--sidebar-muted));
+  }
+  .app-sidebar .sidebar-link {
+    color: hsl(var(--sidebar-muted));
+  }
+  .app-sidebar .sidebar-link:hover {
+    color: hsl(var(--sidebar-fg));
+    background: hsl(var(--sidebar-hover));
+  }
+  .app-sidebar .sidebar-link-active {
+    background-image: var(--primary-gradient);
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 6px 16px -6px hsl(var(--primary) / 0.55);
+  }
+  .app-sidebar .sidebar-divider {
+    border-color: hsl(var(--sidebar-border));
+  }
+
+  /* Frosted top bar floating over the content scroll. */
+  .app-topbar {
+    background: hsl(var(--card) / 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* ─── Shared flourishes ─── */
+  .bg-gradient-primary {
+    background-image: var(--primary-gradient);
+  }
+  .text-gradient-primary {
+    background-image: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat-number {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Interactive cards lift slightly — signals clickability without chrome. */
+  .card-interactive {
+    transition: transform 200ms ease, box-shadow 200ms ease,
+      border-color 200ms ease;
+  }
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.35);
+  }
+
+  /* Shimmering skeleton — sweeps a highlight across the placeholder. */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.06) 50%,
+      transparent 100%
+    );
+    animation: skeleton-shimmer-sweep 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-shimmer-sweep {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer::after {
+      animation: none;
+    }
+  }
+
+  /* Gentle page entrance — content settles rather than popping in. */
+  .page-enter {
+    animation: page-enter 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: none;
+    }
+  }
+
+  /* Live-data pulse dot (leaderboard header, TV badges). */
+  .live-dot {
+    position: relative;
+    display: inline-flex;
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 999px;
+    background: hsl(142 72% 45%);
+  }
+  .live-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: hsl(142 72% 45%);
+    animation: live-dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes live-dot-ping {
+    75%, 100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-dot::after {
+      animation: none;
+      opacity: 0;
+    }
   }
 
   /* Top-strip hero cards keep their per-metric accent color, but the

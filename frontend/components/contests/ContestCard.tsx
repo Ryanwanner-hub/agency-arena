@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import type { ContestListItem, ContestStatus } from "@/lib/api";
 
 const STATUS_PILL: Record<ContestStatus, string> = {
-  active: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
-  pending: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
-  ended: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  active: "bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/25",
+  pending: "bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/25",
+  ended: "bg-muted text-muted-foreground ring-1 ring-border",
 };
 
 const METRIC_LABEL: Record<string, string> = {
@@ -56,7 +56,7 @@ export function ContestCard({
     <Card
       onClick={onClick}
       className={cn(
-        "cursor-pointer transition-all hover:shadow-md",
+        "card-interactive cursor-pointer",
         selected && "ring-2 ring-primary",
       )}
     >
@@ -86,7 +86,7 @@ export function ContestCard({
             {formatDate(contest.start_date)} → {formatDate(contest.end_date)}
           </span>
           {contest.auto_renew && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500 ring-1 ring-amber-500/25">
               <RefreshCw className="h-3 w-3" />
               auto
             </span>

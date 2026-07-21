@@ -7,7 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CreateAgentModal } from "@/components/agents/CreateAgentModal";
 import { Avatar } from "@/components/avatar/Avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   api,
   displayName,
@@ -95,35 +97,28 @@ export function AgentsClient({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
-          <p className="text-sm text-muted-foreground">
-            {totalActive} active · click any agent to personalize their avatar
-            and titles.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search agents…"
-              className="rounded-md border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Add agent
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Agents"
+        subtitle={`${totalActive} active · click any agent to personalize their avatar and titles.`}
+        actions={
+          <>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search agents…"
+                className="rounded-lg border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <Button type="button" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" />
+              Add agent
+            </Button>
+          </>
+        }
+      />
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -200,7 +195,7 @@ function AgentTile({
       >
         <Card
           className={cn(
-            "h-full transition-all hover:-translate-y-0.5 hover:shadow-md",
+            "card-interactive h-full transition-all hover:-translate-y-0.5 hover:shadow-md",
             !agent.active && "opacity-60",
           )}
         >
@@ -222,7 +217,7 @@ function AgentTile({
                   {agent.title ? ` · ${agent.title}` : ""}
                 </p>
                 {!agent.active && (
-                  <span className="mt-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <span className="mt-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground ring-1 ring-border">
                     Inactive
                   </span>
                 )}
@@ -291,7 +286,7 @@ function AgentTile({
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="font-mono text-base font-semibold tabular-nums">{value}</p>
+      <p className="stat-number text-base font-bold">{value}</p>
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
@@ -318,14 +313,10 @@ function EmptyState({
           : "Add your first team member to start the leaderboard."}
       </p>
       {!hasAgents && (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
+        <Button type="button" onClick={onAdd} className="mt-4">
           <Plus className="h-4 w-4" />
           Add your first agent
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -356,7 +347,7 @@ function DeleteAgentDialog({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/40"
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={onCancel}
         aria-hidden
       />
@@ -388,22 +379,24 @@ function DeleteAgentDialog({
         )}
 
         <footer className="flex items-center justify-end gap-2 border-t bg-muted/20 px-6 py-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onCancel}
             disabled={deleting}
-            className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             onClick={onConfirm}
             disabled={deleting}
-            className="rounded-md bg-destructive px-4 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
           >
             {deleting ? "Deleting…" : "Delete agent"}
-          </button>
+          </Button>
         </footer>
       </div>
     </>

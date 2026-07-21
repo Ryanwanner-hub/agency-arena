@@ -7,7 +7,9 @@ import { useMemo, useState } from "react";
 import { LogActivityModal } from "@/components/activity/LogActivityModal";
 import { Avatar } from "@/components/avatar/Avatar";
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   api,
   type ActivityFeedItem,
@@ -143,22 +145,16 @@ export function ActivityClient({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
-          <p className="text-sm text-muted-foreground">
-            Recent team activity across the office.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setLogging(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          Log activity
-        </button>
-      </header>
+      <PageHeader
+        title="Activity"
+        subtitle="Recent team activity across the office."
+        actions={
+          <Button type="button" onClick={() => setLogging(true)}>
+            <Plus className="h-4 w-4" />
+            Log activity
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -184,17 +180,17 @@ export function ActivityClient({
                   type="button"
                   onClick={() => setFilter(f.key)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                     active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground hover:bg-muted",
+                      ? "bg-gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                      : "border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                   )}
                 >
                   {f.label}
                   <span
                     className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-mono",
-                      active ? "bg-primary/15" : "bg-muted",
+                      "rounded-full px-1.5 py-0.5 font-mono text-[10px]",
+                      active ? "bg-primary-foreground/20" : "bg-muted",
                     )}
                   >
                     {count}
@@ -286,7 +282,7 @@ export function ActivityClient({
                             className={cn(
                               "shrink-0 font-mono text-sm font-semibold tabular-nums",
                               it.points > 0
-                                ? "text-emerald-600"
+                                ? "text-emerald-500"
                                 : "text-muted-foreground",
                             )}
                           >
@@ -294,22 +290,24 @@ export function ActivityClient({
                           </span>
                           {pending ? (
                             <span className="flex shrink-0 items-center gap-1.5">
-                              <button
+                              <Button
                                 type="button"
+                                variant="destructive"
+                                size="sm"
                                 onClick={() => deleteActivity(it.id)}
                                 disabled={deleting}
-                                className="rounded-md bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
                               >
                                 {deleting ? "Deleting…" : "Confirm"}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 type="button"
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => setPendingDeleteId(null)}
                                 disabled={deleting}
-                                className="rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
                               >
                                 Cancel
-                              </button>
+                              </Button>
                             </span>
                           ) : (
                             <button

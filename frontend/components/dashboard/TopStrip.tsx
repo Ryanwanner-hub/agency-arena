@@ -14,8 +14,10 @@ type Hero = {
   value: number;
   suffix: string;
   icon: typeof Trophy;
-  accent: string;
-  ringAccent: string;
+  /** Gradient for the icon chip (solid, saturated). */
+  chip: string;
+  /** Soft wash across the card top — alpha-based so it works on dark themes. */
+  wash: string;
 };
 
 function leaderBy(
@@ -46,8 +48,8 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
       value: ofTheDay?.total_points ?? 0,
       suffix: "pts",
       icon: Trophy,
-      accent: "text-amber-600",
-      ringAccent: "from-amber-100 to-amber-50",
+      chip: "from-amber-400 to-amber-600",
+      wash: "from-amber-400/15",
     },
     {
       title: "Most Quotes",
@@ -55,8 +57,8 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
       value: mostQuotes?.quotes ?? 0,
       suffix: "quotes",
       icon: FileText,
-      accent: "text-blue-600",
-      ringAccent: "from-blue-100 to-blue-50",
+      chip: "from-sky-400 to-blue-600",
+      wash: "from-blue-400/15",
     },
     {
       title: "Most Policies",
@@ -64,8 +66,8 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
       value: mostPolicies?.policies ?? 0,
       suffix: "bound",
       icon: Shield,
-      accent: "text-emerald-600",
-      ringAccent: "from-emerald-100 to-emerald-50",
+      chip: "from-emerald-400 to-emerald-600",
+      wash: "from-emerald-400/15",
     },
     ...(settings.display.showReferrals
       ? [
@@ -75,8 +77,8 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
             value: referralLeader?.referrals ?? 0,
             suffix: "in",
             icon: Users,
-            accent: "text-violet-600",
-            ringAccent: "from-violet-100 to-violet-50",
+            chip: "from-violet-400 to-violet-600",
+            wash: "from-violet-400/15",
           } as Hero,
         ]
       : []),
@@ -89,21 +91,28 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
       {cards.map((c) => {
         const Icon = c.icon;
         return (
-          <Card key={c.title} className="overflow-hidden">
+          <Card key={c.title} className="card-interactive overflow-hidden">
             <CardContent className="relative p-5">
               <div
                 className={cn(
-                  "top-strip-accent absolute inset-x-0 top-0 h-16 bg-gradient-to-b opacity-60",
-                  c.ringAccent,
+                  "top-strip-accent absolute inset-x-0 top-0 h-20 bg-gradient-to-b to-transparent",
+                  c.wash,
                 )}
                 aria-hidden
               />
               <div className="relative">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {c.title}
                   </p>
-                  <Icon className={cn("h-5 w-5", c.accent)} />
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-md",
+                      c.chip,
+                    )}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
                 </div>
                 <div className="mt-3 flex items-center gap-3">
                   {c.agent ? (
@@ -114,15 +123,17 @@ export function TopStrip({ leaderboard }: { leaderboard: LeaderboardResponse }) 
                       size="sm"
                     />
                   ) : null}
-                  <p className="min-w-0 flex-1 truncate text-lg font-semibold">
+                  <p className="min-w-0 flex-1 truncate text-base font-semibold">
                     {c.agent ? displayName(c.agent) : "—"}
                   </p>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  <span className="font-mono font-semibold text-foreground">
+                <p className="mt-2 flex items-baseline gap-1.5">
+                  <span className="stat-number text-3xl font-bold leading-none">
                     {c.value}
-                  </span>{" "}
-                  {c.suffix}
+                  </span>
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {c.suffix}
+                  </span>
                 </p>
               </div>
             </CardContent>

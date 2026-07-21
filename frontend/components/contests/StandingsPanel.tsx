@@ -3,6 +3,7 @@
 import { Pencil, Trash2, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api, type ContestStandings } from "@/lib/api";
 
@@ -17,9 +18,9 @@ const METRIC_LABEL: Record<string, string> = {
 };
 
 const STATUS_PILL: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
-  pending: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
-  ended: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  active: "bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/25",
+  pending: "bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/25",
+  ended: "bg-muted text-muted-foreground ring-1 ring-border",
 };
 
 const RANK_BADGE: Record<number, string> = {
@@ -122,12 +123,12 @@ export function StandingsPanel({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
       <aside
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l bg-card shadow-xl"
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l bg-card shadow-2xl"
         role="dialog"
         aria-label="Contest standings"
       >
@@ -135,7 +136,7 @@ export function StandingsPanel({
           <div className="min-w-0 flex-1">
             {data ? (
               <>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {data.contest.type} · {METRIC_LABEL[data.contest.metric] ?? data.contest.metric}
                 </p>
                 <h2 className="mt-0.5 truncate text-lg font-semibold">
@@ -197,8 +198,10 @@ export function StandingsPanel({
               are unaffected.
             </p>
             <div className="mt-3 flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={async () => {
                   setDeleting(true);
                   try {
@@ -215,18 +218,18 @@ export function StandingsPanel({
                   }
                 }}
                 disabled={deleting}
-                className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
               >
                 {deleting ? "Deleting…" : "Yes, delete"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setConfirmingDelete(false)}
                 disabled={deleting}
-                className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -293,7 +296,7 @@ export function StandingsPanel({
                     key={e.agent_id}
                     className={cn(
                       "flex items-center gap-3 rounded-md border bg-background px-3 py-2.5",
-                      e.rank === 1 && "ring-1 ring-amber-200",
+                      e.rank === 1 && "ring-1 ring-amber-500/30",
                     )}
                   >
                     <span
@@ -322,9 +325,9 @@ export function StandingsPanel({
                     </div>
                     <p
                       className={cn(
-                        "shrink-0 font-mono text-base font-semibold tabular-nums",
-                        isImproved && e.value > 0 && "text-emerald-600",
-                        isImproved && e.value < 0 && "text-rose-600",
+                        "stat-number shrink-0 text-base font-bold",
+                        isImproved && e.value > 0 && "text-emerald-500",
+                        isImproved && e.value < 0 && "text-rose-500",
                       )}
                     >
                       {formatValue(e.value, data.contest.metric)}

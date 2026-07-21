@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { api, type Agent } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +99,7 @@ export function CreateAgentModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/40"
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
@@ -117,7 +118,7 @@ export function CreateAgentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -163,10 +164,10 @@ export function CreateAgentModal({
                   type="button"
                   onClick={() => setRole(r.value)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-xs font-medium",
+                    "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                     role === r.value
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "text-muted-foreground hover:bg-muted",
+                      ? "bg-gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                      : "border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                   )}
                 >
                   {r.label}
@@ -194,10 +195,10 @@ export function CreateAgentModal({
                     type="button"
                     onClick={() => setWeeklyGoal(String(amt))}
                     className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
+                      "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-all",
                       Number(weeklyGoal) === amt
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted",
+                        ? "bg-gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                        : "border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                     )}
                   >
                     ${(amt / 1000).toFixed(0)}k
@@ -267,22 +268,18 @@ export function CreateAgentModal({
         </form>
 
         <footer className="flex items-center justify-end gap-2 border-t bg-muted/20 px-6 py-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
             disabled={submitting}
           >
             Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={submit}
-            disabled={!canSubmit}
-            className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" size="sm" onClick={submit} disabled={!canSubmit}>
             {submitting ? "Adding…" : "Add agent"}
-          </button>
+          </Button>
         </footer>
       </div>
     </>
@@ -300,7 +297,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </label>

@@ -13,7 +13,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-6 lg:p-8">
+          <div className="page-enter mx-auto max-w-[1400px]">{children}</div>
+        </main>
       </div>
     </div>
   );

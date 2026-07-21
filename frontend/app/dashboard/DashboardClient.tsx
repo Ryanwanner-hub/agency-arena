@@ -9,6 +9,7 @@ import { LeaderboardTable } from "@/components/dashboard/LeaderboardTable";
 import { RecentWinsFeed } from "@/components/dashboard/RecentWinsFeed";
 import { RecommendedActionsCard } from "@/components/dashboard/RecommendedActionsCard";
 import { TopStrip } from "@/components/dashboard/TopStrip";
+import { PageHeader } from "@/components/ui/page-header";
 import { useSound } from "@/components/sound/SoundProvider";
 import { subscribeAgentUpdated } from "@/lib/agent-events";
 import {
@@ -205,17 +206,19 @@ export function DashboardClient({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Today's leaderboard ·{" "}
-          {formatDateOnly(leaderboard.start_date, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        subtitle={
+          <>
+            Today's leaderboard ·{" "}
+            {formatDateOnly(leaderboard.start_date, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </>
+        }
+      />
 
       <TopStrip leaderboard={leaderboard} />
 

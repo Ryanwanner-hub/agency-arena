@@ -3,7 +3,9 @@
 import { BarChart3, Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { api, displayName, type SummaryReport } from "@/lib/api";
 import { localDateKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -185,24 +187,22 @@ export function ReportsClient() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-          <p className="text-sm text-muted-foreground">
-            Pull metrics for any window — pick a preset or set custom dates.
-          </p>
-        </div>
-        {data && (
-          <button
-            type="button"
-            onClick={() => downloadCsv(data)}
-            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
-          >
-            <Download className="h-4 w-4" />
-            Download CSV
-          </button>
-        )}
-      </header>
+      <PageHeader
+        title="Reports"
+        subtitle="Pull metrics for any window — pick a preset or set custom dates."
+        actions={
+          data ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => downloadCsv(data)}
+            >
+              <Download className="h-4 w-4" />
+              Download CSV
+            </Button>
+          ) : undefined
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -219,10 +219,10 @@ export function ReportsClient() {
                 type="button"
                 onClick={() => setPreset(p.value)}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                   preset === p.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted",
+                    ? "bg-gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                 )}
               >
                 {p.label}
@@ -231,7 +231,7 @@ export function ReportsClient() {
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Start
               </label>
               <input
@@ -246,7 +246,7 @@ export function ReportsClient() {
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 End
               </label>
               <input
@@ -366,25 +366,25 @@ export function ReportsClient() {
                 <tfoot className="bg-muted/30 font-semibold">
                   <tr>
                     <td className="px-5 py-3">Team total</td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.policies}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.bundles}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.referrals}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.reviews}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {fmtDollar(data.team.premium_total)}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.total_points}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums">
+                    <td className="stat-number px-5 py-3 text-right font-bold">
                       {data.team.close_rate > 0
                         ? `${Math.round(data.team.close_rate * 100)}%`
                         : "—"}

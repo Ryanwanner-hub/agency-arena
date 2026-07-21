@@ -31,9 +31,16 @@ const STATUS_ICON: Record<AgentStatus, typeof Flame> = {
 };
 
 const RANK_TILE: Record<number, string> = {
-  1: "bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-sm",
-  2: "bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-sm",
-  3: "bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm",
+  1: "bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-md shadow-amber-500/40 ring-1 ring-amber-300/60",
+  2: "bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-md shadow-slate-400/40 ring-1 ring-slate-300/60",
+  3: "bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-md shadow-orange-500/40 ring-1 ring-orange-300/60",
+};
+
+/* Alpha-based tints so podium rows read correctly on dark themes too. */
+const PODIUM_ROW: Record<number, string> = {
+  1: "bg-gradient-to-r from-amber-400/10 via-amber-400/[0.04] to-transparent",
+  2: "bg-gradient-to-r from-slate-400/10 via-slate-400/[0.04] to-transparent",
+  3: "bg-gradient-to-r from-orange-400/10 via-orange-400/[0.04] to-transparent",
 };
 
 export function LeaderboardRow({
@@ -71,17 +78,18 @@ export function LeaderboardRow({
       onClick={onClick}
       className={cn(
         "leaderboard-row cursor-pointer border-t transition-colors",
-        isTop3 && "top-3-row bg-amber-50/40",
+        isTop3 && "top-3-row",
+        isTop3 && PODIUM_ROW[entry.rank],
         selected && "bg-primary/5 ring-1 ring-inset ring-primary/30",
         !selected && "hover:bg-muted/40",
       )}
     >
-      <td className={cn("px-5", isTop3 ? "py-4" : "py-3")}>
+      <td className={cn("px-4", isTop3 ? "py-4" : "py-3")}>
         <div className="relative inline-block">
           <span
             className={cn(
               `rank-tile rank-${entry.rank}`,
-              "inline-flex items-center justify-center rounded-full font-mono font-bold",
+              "stat-number inline-flex items-center justify-center rounded-full font-bold",
               isTop3 ? "h-8 w-8 text-sm" : "h-7 w-7 text-xs",
               RANK_TILE[entry.rank] ??
                 "border bg-background text-muted-foreground",
@@ -105,7 +113,7 @@ export function LeaderboardRow({
           )}
         </div>
       </td>
-      <td className={cn("px-5", isTop3 ? "py-4" : "py-3")}>
+      <td className={cn("px-4", isTop3 ? "py-4" : "py-3")}>
         <div className="flex items-center gap-3">
           <Avatar
             name={displayName(entry)}
@@ -125,12 +133,13 @@ export function LeaderboardRow({
           </div>
         </div>
       </td>
-      <td className={cn("px-5 text-right", isTop3 ? "py-4" : "py-3")}>
+      <td className={cn("px-4 text-right", isTop3 ? "py-4" : "py-3")}>
         <div className="flex flex-col items-end leading-tight">
           <span
             className={cn(
-              "points-value font-mono font-semibold tabular-nums",
+              "points-value stat-number font-bold",
               isTop3 ? "text-2xl" : "text-lg",
+              entry.rank === 1 && "text-gradient-primary",
             )}
           >
             {entry.total_points}
@@ -138,18 +147,18 @@ export function LeaderboardRow({
           <MomentumIndicator delta={entry.trend_delta} pct={entry.trend_pct} />
         </div>
       </td>
-      <td className={cn("px-5 text-right font-mono tabular-nums", isTop3 ? "py-4 text-base" : "py-3")}>
+      <td className={cn("px-4 text-right font-mono tabular-nums", isTop3 ? "py-4 text-base" : "py-3")}>
         {entry.quotes}
       </td>
-      <td className={cn("px-5 text-right font-mono tabular-nums", isTop3 ? "py-4 text-base" : "py-3")}>
+      <td className={cn("px-4 text-right font-mono tabular-nums", isTop3 ? "py-4 text-base" : "py-3")}>
         {entry.policies}
       </td>
       {showCloseRate && (
-        <td className={cn("px-5 text-right font-mono tabular-nums", isTop3 ? "py-4" : "py-3")}>
+        <td className={cn("px-4 text-right font-mono tabular-nums", isTop3 ? "py-4" : "py-3")}>
           {entry.quotes > 0 ? `${Math.round(entry.close_rate * 100)}%` : "—"}
         </td>
       )}
-      <td className={cn("px-5 text-right", isTop3 ? "py-4" : "py-3")}>
+      <td className={cn("px-4 text-right", isTop3 ? "py-4" : "py-3")}>
         <span
           className={cn(
             "inline-flex items-center gap-1 font-mono",
@@ -164,7 +173,7 @@ export function LeaderboardRow({
           {streak}d
         </span>
       </td>
-      <td className={cn("px-5", isTop3 ? "py-4" : "py-3")}>
+      <td className={cn("px-4", isTop3 ? "py-4" : "py-3")}>
         <div className="flex items-center gap-2">
           <MomentumMeter status={status} />
           <span

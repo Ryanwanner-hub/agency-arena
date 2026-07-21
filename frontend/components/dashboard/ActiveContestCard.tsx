@@ -114,8 +114,8 @@ export function ActiveContestCard({
             className={cn(
               "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
               featured.status === "active"
-                ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
-                : "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+                ? "bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/25"
+                : "bg-muted text-muted-foreground ring-1 ring-border",
             )}
           >
             {featured.status}
@@ -149,7 +149,7 @@ export function ActiveContestCard({
                   {entry.rank}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                <span className="font-mono text-sm font-semibold tabular-nums">
+                <span className="stat-number text-sm font-bold">
                   {formatValue(entry.value, featured.metric)}
                 </span>
               </li>

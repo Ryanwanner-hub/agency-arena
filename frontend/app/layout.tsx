@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter, Space_Grotesk } from "next/font/google";
 
 import { CelebrationProvider } from "@/components/celebration/CelebrationProvider";
 import { AppShell } from "@/components/layout/AppShell";
@@ -16,6 +17,21 @@ import {
 } from "@/lib/themes";
 
 import "./globals.css";
+
+/* Body text — clean, neutral, excellent at small sizes. */
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+/* Display face — headlines, big stat numbers, rank tiles. Gives the
+ * scoreboard its "broadcast graphics" feel. */
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Agency Arena",
@@ -71,7 +87,12 @@ export default async function RootLayout({
   const initialAnimation = THEMES[theme].animationIntensity;
 
   return (
-    <html lang="en" data-theme={theme} data-animation={initialAnimation}>
+    <html
+      lang="en"
+      data-theme={theme}
+      data-animation={initialAnimation}
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+    >
       <head>
         <style dangerouslySetInnerHTML={{ __html: THEME_STYLESHEET }} />
       </head>

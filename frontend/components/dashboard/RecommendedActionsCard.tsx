@@ -38,7 +38,7 @@ function buildActions(
     if (gap > 0 && gap <= 30) {
       actions.push({
         icon: Target,
-        iconClass: "text-emerald-600 bg-emerald-50",
+        iconClass: "text-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/20",
         title: `${displayName(second)} is ${gap} pts from #1`,
         subtitle:
           gap <= 10
@@ -53,7 +53,7 @@ function buildActions(
     if (entry.quotes >= 2 && entry.policies === 0) {
       actions.push({
         icon: Shield,
-        iconClass: "text-blue-600 bg-blue-50",
+        iconClass: "text-blue-500 bg-blue-500/10 ring-1 ring-blue-500/20",
         title: `${displayName(entry)} has ${entry.quotes} open quotes`,
         subtitle: "Help close one — that's +30 pts and a celebration.",
       });
@@ -70,7 +70,7 @@ function buildActions(
     if (streak >= 3) {
       actions.push({
         icon: Snowflake,
-        iconClass: "text-rose-600 bg-rose-50",
+        iconClass: "text-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20",
         title: `${displayName(entry)} hasn't logged today`,
         subtitle: `${streak}-day streak at risk — a quick activity keeps it alive.`,
       });
@@ -85,7 +85,7 @@ function buildActions(
   if (refLeader && refLeader.referrals >= 2 && actions.length < 3) {
     actions.push({
       icon: Users,
-      iconClass: "text-violet-600 bg-violet-50",
+      iconClass: "text-violet-500 bg-violet-500/10 ring-1 ring-violet-500/20",
       title: `${displayName(refLeader)} leads referrals (${refLeader.referrals})`,
       subtitle: "Ask them to share their script with the team.",
     });

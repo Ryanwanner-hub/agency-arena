@@ -3,6 +3,7 @@
 import { DollarSign, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { api, displayName, type Activity, type Agent } from "@/lib/api";
 import { localDateKey } from "@/lib/dates";
 import { ACTIVITY_LABEL, ACTIVITY_TYPES } from "@/lib/manager-settings";
@@ -187,7 +188,7 @@ export function LogActivityModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/40"
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
@@ -242,7 +243,7 @@ export function LogActivityModal({
             <div className="space-y-3">
               {TYPE_GROUPS.map((g) => (
                 <div key={g.label}>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {g.label}
                   </p>
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -371,13 +372,14 @@ export function LogActivityModal({
                 )}
               />
               {isBackdated ? (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setLogDate(todayKey)}
-                  className="rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
                 >
                   Reset to today
-                </button>
+                </Button>
               ) : (
                 <span className="text-xs text-muted-foreground">
                   Defaults to today — change to backdate.
@@ -385,7 +387,7 @@ export function LogActivityModal({
               )}
             </div>
             {isBackdated && (
-              <p className="mt-1.5 text-[11px] text-amber-600">
+              <p className="mt-1.5 text-[11px] text-amber-500">
                 Backdating — the activity will land on {logDate} and update
                 that day's leaderboard / contest totals.
               </p>
@@ -400,22 +402,21 @@ export function LogActivityModal({
         </form>
 
         <footer className="flex items-center justify-end gap-2 border-t bg-muted/20 px-6 py-3">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-md border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             onClick={submit}
             disabled={!canSubmit || agents.length === 0}
-            className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {submitting ? "Logging…" : "Log activity"}
-          </button>
+          </Button>
         </footer>
       </div>
     </>
@@ -433,7 +434,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </label>

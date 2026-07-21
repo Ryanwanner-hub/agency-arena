@@ -13,7 +13,9 @@ import { useCelebrationSettings } from "@/components/celebration/CelebrationProv
 import { useManagerSettings } from "@/components/settings/ManagerSettingsProvider";
 import { useSound } from "@/components/sound/SoundProvider";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { api } from "@/lib/api";
 import {
   ACTIVITY_LABEL,
@@ -36,13 +38,10 @@ export function SettingsClient() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure how Agency Arena looks, sounds, and rewards across the
-          office.
-        </p>
-      </header>
+      <PageHeader
+        title="Settings"
+        subtitle="Configure how Agency Arena looks, sounds, and rewards across the office."
+      />
 
       {hydrated && (
         <>
@@ -86,10 +85,10 @@ function ThemeSection() {
                   type="button"
                   onClick={() => setTheme(t.key)}
                   className={cn(
-                    "flex items-center gap-3 rounded-md border p-3 text-left transition-colors",
+                    "flex items-center gap-3 rounded-lg border p-3 text-left transition-all",
                     active
                       ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                      : "hover:bg-muted/40",
+                      : "hover:border-primary/40 hover:bg-muted/40",
                   )}
                 >
                   <span className="flex h-9 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-border">
@@ -192,14 +191,15 @@ function SoundSection() {
               className="flex-1 accent-primary disabled:opacity-50"
               aria-label="Master volume"
             />
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => play("policy_bound")}
               disabled={muted}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
               Test
-            </button>
+            </Button>
           </div>
         </Field>
 
@@ -298,15 +298,16 @@ function PointSection() {
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <CardTitle>Point values</CardTitle>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={resetPoints}
             disabled={!dirty}
-            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
           >
             <RotateCcw className="h-3 w-3" />
             Reset to default
-          </button>
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -425,13 +426,9 @@ function OfficeSection() {
               policies bound today
             </span>
             {dirty && (
-              <button
-                type="button"
-                onClick={commit}
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-              >
+              <Button type="button" size="sm" onClick={commit}>
                 Save
-              </button>
+              </Button>
             )}
           </div>
         </Field>
@@ -539,7 +536,7 @@ function DangerSection() {
 
         {done ? (
           <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-            <p className="font-medium text-emerald-700 dark:text-emerald-400">
+            <p className="font-medium text-emerald-500">
               Office wiped clean.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -559,19 +556,14 @@ function DangerSection() {
               placeholder={`Type ${RESET_PHRASE} to enable`}
               className="flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:border-destructive focus:outline-none focus:ring-1 focus:ring-destructive/40"
             />
-            <button
+            <Button
               type="button"
+              variant="destructive"
               onClick={reset}
               disabled={!armed || busy}
-              className={cn(
-                "rounded-md px-4 py-2 text-sm font-medium transition-colors",
-                armed && !busy
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-muted text-muted-foreground",
-              )}
             >
               {busy ? "Resetting…" : "Reset everything"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -659,13 +651,13 @@ function Switch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-        checked ? "bg-primary" : "bg-muted",
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-all",
+        checked ? "bg-gradient-primary shadow-sm shadow-primary/25" : "bg-muted",
       )}
     >
       <span
         className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-card shadow-sm transition-transform",
+          "inline-block h-4 w-4 transform rounded-full bg-card shadow-sm transition-all",
           checked ? "translate-x-4" : "translate-x-0.5",
         )}
       />
@@ -683,7 +675,7 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-md border bg-muted/30 p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-lg border bg-muted/30 p-1">
       {options.map((opt) => {
         const active = value === opt.key;
         return (
@@ -692,9 +684,9 @@ function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(opt.key)}
             className={cn(
-              "rounded px-3 py-1 text-xs font-medium transition-colors",
+              "rounded-md px-3 py-1 text-xs font-semibold transition-all",
               active
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-gradient-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

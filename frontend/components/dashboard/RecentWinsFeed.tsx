@@ -84,7 +84,8 @@ export function RecentWinsFeed({
             <Trophy className="h-4 w-4 text-amber-500" />
             Recent wins
           </CardTitle>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="live-dot" aria-hidden />
             Live
           </span>
         </div>
@@ -128,7 +129,7 @@ export function RecentWinsFeed({
                     {relativeTime(w.created_at)}
                   </p>
                 </div>
-                <span className="font-mono text-sm font-semibold text-emerald-600">
+                <span className="stat-number rounded-full bg-emerald-500/10 px-2 py-0.5 text-sm font-bold text-emerald-500 ring-1 ring-emerald-500/20">
                   +{w.points}
                 </span>
               </li>
